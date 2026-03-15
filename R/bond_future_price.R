@@ -1,20 +1,20 @@
 #' bond_future_price
 #'
-#' @param call_prices a vector of call prices in numeric format
-#' @param call_strikes a vector of call strikes attached to the call prices in numeric format
-#' @param put_prices a vector of put prices in numeric format
-#' @param put_strikes a vector of put strikes attached to the put prices in numeric format
-#' @param nb_log a number for the number of lognormal densities to model the futures contracts, either 2 or 3, in numeric format
+#' @param call_prices a vector of call prices, in numeric format
+#' @param call_strikes a vector of call strikes attached to the call prices, in numeric format
+#' @param put_prices a vector of put prices, in numeric format
+#' @param put_strikes a vector of put strikes attached to the put prices, in numeric format
+#' @param nb_log a number for the number of lognormal densities in the lognormal mixture to model the futures contracts, either 2 or 3, in numeric format
 #' @param r a number for the riskfree discount rate whose maturity is equal to the option's maturity, in numeric format
-#' @param day_count_conv a number for the day count convention, either 1 (ACT/ACT), 2 (ACT/360), 3 (ACT/365) or 4 (30/360), in numeric format
-#' @param cot a number for the type of quotation of the options, either 1 (European options), 2 (American options quoted as futures) or 3 (American options), in numeric format
+#' @param day_count_conv a number for the day count convention, 1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360, in numeric format
+#' @param cot a number for the type of listing of the options, 1 for European options, 2 for American options quoted as futures and 3 for American options, in numeric format
 #' @param ctd_matu a date for the maturity date of the Cheapest-to-Deliver Bond in the basket of deliverable bonds of the futures contract, in Date format
 #' @param fut_price a number for the futures contract price on calibration date, in numeric format
 #' @param fut_matu a date for the maturity date of the futures contract, in Date format
 #' @param option_matu a date for the maturity date of the options, in Date format
-#' @param start_date a date for the calibration date, in Date format
-#' @param nationality a character for the nationality of the issuer of the bond in the futures contract underlying the option, in character format
-#' @param currency a character for the currency in which the futures contract and the options are traded, in character format
+#' @param start_date a date for the observation date, in Date format
+#' @param nationality a character for the nationality of the issuer of the bond in the futures contract underlying the option, in character format (NA by default)
+#' @param currency a character for the currency in which the futures contract and the options are traded, in character format (NA by default)
 #'
 #' @returns the mean and standard deviation of each lognormal density in the mixture and the weight on the first density (for a mixture of 2) or on the first 2 densities (for a mixture of 3) in numeric format, a series of values for the futures contract's price at options maturity in numeric format, the probability density attached to each value of the futures contract's price in numeric format, the cumulative density attached to each value of the futures contract's price in numeric format, the type of convergence in numeric format with 0 indicating successful convergence, the mean, the standard deviation, the skewness and the kurtosis of the futures contract's prices distribution at option's maturity in numeric format, a plot of the RND of the futures prices, a plot of the CDF of the futures prices, quantiles of order 0.1%, 0.5%, 1%, 5%, 10%, 25%, 50%, 75%, 90%, 95%, 99%, 99.5% and 99.9% of the distribution of futures prices at options' maturity, in numeric format
 #' @export
@@ -30,37 +30,34 @@
 #' bond_future_price(c(10.39,9.92,9.46,9.00,8.55,8.10,7.66,7.23,
 #' 6.81,6.39,5.98,5.58,5.20,4.82,4.46,4.10,3.76,3.44,3.13,2.83,2.56,
 #' 2.29,2.05,1.82,1.61,1.42,1.25,1.09,0.95,0.82,0.71,0.61,0.53,0.45,
-#' 0.38,0.33,0.28,0.23,0.20,0.17,0.14,0.12,0.10,0.08), seq(106, 127.5, 0.5),
+#' 0.38,0.33,0.28,0.23,0.20,0.17,0.14,0.12,0.10,0.08),
+#' seq(106, 127.5, 0.5),
 #' c(0.22,0.25,0.29,0.33,0.38,0.43,0.49,0.56,0.64,0.72,0.81,0.91,
 #' 1.03,1.15,1.29, 1.43,1.59,1.77,1.96,2.16,2.39,2.62,2.88,3.15,
 #' 3.44,3.75,4.08, 4.42,4.78,5.15,5.54,5.94,6.36,6.78,7.21,7.66,
-#' 8.11,8.56,9.03, 9.50,9.97,10.45,10.93,11.41), seq(106, 127.5, 0.5),
-#' 2, 0.0344, 1, 3, as.Date("2033-11-01"), 116.17, as.Date("2024-12-10"),
-#' as.Date("2024-11-22"), as.Date("2024-06-14"), "Italian", "EUR")
+#' 8.11,8.56,9.03, 9.50,9.97,10.45,10.93,11.41),
+#' seq(106, 127.5, 0.5),
+#' 2,
+#' 0.0344,
+#' 1,
+#' 3,
+#' as.Date("2033-11-01"),
+#' 116.17,
+#' as.Date("2024-12-10"),
+#' as.Date("2024-11-22"),
+#' as.Date("2024-06-14"),
+#' "Italian",
+#' "EUR")
 #' }
 #'
+
 bond_future_price <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log, r, day_count_conv, cot,
                               ctd_matu, fut_price, fut_matu, option_matu, start_date, nationality = NA, currency = NA){
 
-  C <- call_prices
-  P <- put_prices
-  KC <- call_strikes
-  KP <- put_strikes
-  nb_log <- nb_log
-  r <- r
-  day_count_conv <- day_count_conv
-  cot <- cot
-  ctd_matu <- ctd_matu
-  fut_price <- fut_price
-  fut_matu <- fut_matu
-  option_matu <- option_matu
-  start_date <- start_date
-  nationality <- nationality
-  currency <- currency
-
   if(length(nb_log) == 1 & length(r) == 1 & length(day_count_conv) == 1 & length(cot) == 1 & length(ctd_matu) == 1 &
      length(fut_price) == 1 & length(fut_matu) == 1 & length(option_matu) == 1 & length(start_date) == 1 &
-     length(nationality) == 1 & length(currency) == 1 & length(C) > 1 & length(KC) > 1 & length(P) > 1 & length(KP) > 1){
+     length(nationality) == 1 & length(currency) == 1 & length(call_prices) > 1 & length(call_strikes) > 1 &
+     length(put_prices) > 1 & length(put_strikes) > 1){
 
     bond_fut <- data.frame(ctd_matu, fut_price, option_matu, start_date, fut_matu, nationality, currency) %>%
       rename_with(~c("ctd_matu", "fut_price", "option_matu", "start_date", "fut_matu", "nationality", "currency"))
@@ -139,6 +136,10 @@ bond_future_price <- function(call_prices, call_strikes, put_prices, put_strikes
       objective <- function(x){
         ifelse( length(PR) !=2, MSE_mix( c(x[1:4], PR[i])), MSE_mix( c(x[1:6], PR[i, 1], PR[i, 2] ))) }
 
+      C <- call_prices
+      P <- put_prices
+      KC <- call_strikes
+      KP <- put_strikes
       T <- bond_fut$option_term
       FWD <- bond_fut$fut_price
 
@@ -265,17 +266,17 @@ bond_future_price <- function(call_prices, call_strikes, put_prices, put_strikes
             cdf_graph <- data.frame(price = PX_graph, cdf = NCDF_graph)
 
             pdf <- ggplot() + geom_line(data = df_graph, aes(x = price, y = density)) +
-              labs(x = paste0("futures prices (", bond_fut$currency, ")"), y = "probability density") + theme_bw() +
+              labs(x = paste0("futures price (", bond_fut$currency, ")"), y = "probability density") + theme_bw() +
               theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
               labs(title = paste0(round(as.numeric(bond_fut$ctd_matu - bond_fut$start_date)/365/10)*10, "-year ",
-                                  bond_fut$nationality, " bond futures prices as of ", bond_fut$start_date),
+                                  bond_fut$nationality, " bond futures price as of ", bond_fut$start_date),
                    subtitle = paste0("Probability Density for a mixture of ", nb_log, " lognormals"))
 
             ncdf <- ggplot() + geom_line(data = cdf_graph, aes(x = price, y = cdf)) +
-              labs(x = paste0("futures prices (", bond_fut$currency, ")"), y = "cumulative probability") + theme_bw() +
+              labs(x = paste0("futures price (", bond_fut$currency, ")"), y = "cumulative probability") + theme_bw() +
               theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
               labs(title = paste0(round(as.numeric(bond_fut$ctd_matu - bond_fut$start_date)/365/10)*10, "-year ",
-                                  bond_fut$nationality, " bond futures prices as of ", bond_fut$start_date),
+                                  bond_fut$nationality, " bond futures price as of ", bond_fut$start_date),
                    subtitle = paste0("Cumulative Probability for a mixture of ", nb_log, " lognormals"))
 
             bond_future_price <- list(params, df$price, df$density, cdf$cdf, solu$convergence, E, SD, SK, KU, pdf, ncdf, qt)
@@ -288,5 +289,5 @@ bond_future_price <- function(call_prices, call_strikes, put_prices, put_strikes
         } else {message("impossible to retrieve a density")}
       } else {message("impossible to retrieve a density")}
     } else {message("input dates are not consistent")}
-  } else {message("inputs have not the required length")}
+  } else {message("inputs do not have the required length")}
 }

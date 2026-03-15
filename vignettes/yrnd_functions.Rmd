@@ -8,7 +8,7 @@ vignette: >
 ---
 
 ```{r, include = FALSE}
-knitr::opts_chunk$set(  collapse = TRUE,  comment = "#>")
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(yrnd)
 ```
 
@@ -16,12 +16,11 @@ library(yrnd)
 library(yrnd)
 ```
 
-
 ## yrnd
 
 The package '"yrnd"' estimates a parametric form of the risk neutral distribution of prices of fixed-income futures such as Short Term Interest Rates futures and sovereign bond futures, using options written on those futures. This is the distribution at options' maturity. The package also provides the distribution of rates and bond yields themselves at options' maturity, starting from the density of the futures price. It provides with some statistics of the distribution as well as a density and a cumulative density plot.
 
-## Getting the risk neutral density of the yield to maturity of a bond from options on a future on the bond
+## Getting the risk neutral density of the yield to maturity of a futures contract's Cheapest-to-Deliver Bond from options on the bond future
 
 ```{r}
 ctd_bond_yield(c(10.39,9.92,9.46,9.00,8.55,8.10,7.66,7.23,
@@ -36,5 +35,3 @@ c(0.22,0.25,0.29,0.33,0.38,0.43,0.49,0.56,0.64,0.72,0.81,0.91,
 2, 116.17, as.Date("2024-12-10"), as.Date("2024-11-22"), as.Date("2024-06-14"),
 "Italian", "EUR")
 ```
-
-

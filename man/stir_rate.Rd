@@ -23,23 +23,23 @@ stir_rate(
 )
 }
 \arguments{
-\item{call_prices}{a vector of call prices in numeric format}
+\item{call_prices}{a vector of call prices, in numeric format}
 
-\item{call_strikes}{a vector of call strikes attached to the call prices in numeric format}
+\item{call_strikes}{a vector of call strikes attached to the call prices, in numeric format}
 
-\item{put_prices}{a vector of put prices in numeric format}
+\item{put_prices}{a vector of put prices, in numeric format}
 
-\item{put_strikes}{a vector of put strikes attached to the put prices in numeric format}
+\item{put_strikes}{a vector of put strikes attached to the put prices, in numeric format}
 
-\item{nb_log}{a number for the number of lognormal densities to model the futures contracts, either 2 or 3, in numeric format}
+\item{nb_log}{a number for the number of lognormal densities in the lognormal mixture to model the futures contracts, either 2 or 3, in numeric format}
 
 \item{r}{a number for the riskfree discount rate whose maturity is equal to the option's maturity, in numeric format}
 
 \item{r_2}{a number for the riskfree discount rate whose maturity is equal to the futures contract's maturity, in numeric format}
 
-\item{day_count_conv}{a number for the day count convention, either 1 (ACT/ACT), 2 (ACT/360), 3 (ACT/365) or 4 (30/360), in numeric format}
+\item{day_count_conv}{a number for the day count convention, 1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360, in numeric format}
 
-\item{cot}{a number for the type of quotation of the options, either 1 (European options), 2 (American options quoted as futures) or 3 (American options), in numeric format}
+\item{cot}{a number for the type of listing of the options, 1 for European options, 2 for American options quoted as futures and 3 for American options, in numeric format}
 
 \item{fut_price}{a number for the futures contract price on calibration date, in numeric format}
 
@@ -47,66 +47,52 @@ stir_rate(
 
 \item{option_matu}{a date for the maturity date of the options, in Date format}
 
-\item{start_date}{a date for the calibration date, in Date format}
+\item{start_date}{a date for the observation date, in Date format}
 
-\item{ref_rate}{a character for the name of the STIR, in character format}
+\item{ref_rate}{a character for the name of the STIR, in character format (NA by default)}
 
-\item{currency}{a character for the currency in which the futures contract and the options are traded, in character format}
+\item{currency}{a character for the currency in which the futures contract and the options are traded, in character format (NA by default)}
 }
 \value{
-a series of values for STIR rate in numeric format, the probability density attached to each value of the STIR rate in numeric format, the cumulative density attached to each value of the STIR rate in numeric format, the type of convergence in numeric format with 0 indicating successful convergence, the mean, the standard deviation, the skewness and the kurtosis of the STIR rates' distribution at options maturity in numeric format, a plot of the RND of the STIR rates, a plot of the CDF of the STIR rates, quantiles of order 0.1\%, 0.5\%, 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%, 99.5\% and 99.9\% of the distribution of futures prices at options' maturity, in numeric format
+a series of values for STIR rate in numeric format, the probability density attached to each value of the STIR rate in numeric format, the cumulative density attached to each value of the STIR rate in numeric format, the type of convergence in numeric format with 0 indicating successful convergence, the mean, the standard deviation, the skewness and the kurtosis of the STIR rates' distribution at options maturity in numeric format, a plot of the RND of the STIR rates, a plot of the CDF of the STIR rates, quantiles of order 0.1\%, 0.5\%, 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%, 99.5\% and 99.9\% of the distribution of STIR rates at options' maturity, in numeric format
 }
 \description{
 stir_rate
 }
 \examples{
 \donttest{
-stir_rate( c(11.44500, 1.32000, 1.19750, 1.07500, 0.95750,
+stir_rate( c(1.44500, 1.32000, 1.19750, 1.07500, 0.95750,
 0.84250, 0.78750, 0.73250, 0.68000, 0.62750, 0.57750, 0.53000, 0.48500,
 0.44000, 0.39750, 0.35750, 0.32000, 0.28500, 0.25250, 0.22250, 0.19500,
 0.17000, 0.14750, 0.12750, 0.10750, 0.09250, 0.07750, 0.06500, 0.05500,
 0.04500, 0.03750, 0.03000, 0.02500, 0.02000, 0.01500, 0.01250, 0.01000,
-0.00750, 0.00500, 0.00500, 0.00250, 0.00250, 0.00250, 0.00250, 0.00024,
-0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024,
-0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024,
-0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024,
-0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024,
-0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024,
-0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024),
-c(93.2500, 93.3750, 93.5000, 93.6250, 93.7500, 93.8750, 93.9375, 94.0000,
-94.0625, 94.1250, 94.1875, 94.2500, 94.3125, 94.3750, 94.4375, 94.5000,
-94.5625, 94.6250, 94.6875, 94.7500, 94.8125, 94.8750, 94.9375, 95.0000,
-95.0625, 95.1250, 95.1875, 95.2500,95.3125, 95.3750, 95.4375, 95.5000,
-95.5625, 95.6250, 95.6875, 95.7500, 95.8125, 95.8750, 95.9375, 96.0000,
-96.0625, 96.1250, 96.1875, 96.2500, 96.3125, 96.3750, 96.4375, 96.5000,
-96.5625, 96.6250, 96.6875, 96.7500, 96.8125, 96.8750, 96.9375, 97.0000,
-97.0625, 97.1250, 97.1875, 97.2500, 97.3125, 97.3750, 97.4375, 97.5000,
-97.5625, 97.6250, 97.6875, 97.7500, 97.8125, 97.8750, 97.9375, 98.0000,
-98.0625, 98.1250, 98.1875, 98.2500, 98.3125, 98.3750, 98.4375, 98.5000,
-98.5625, 98.6250, 98.6875, 98.7500, 98.8125, 98.8750, 99.0000, 99.1250,
-99.2500, 99.3750, 99.5000), c(0.0025, 0.0050, 0.0075, 0.0125, 0.0175,
-0.0300, 0.0350, 0.0425, 0.0525, 0.0625, 0.0750, 0.0900, 0.1050, 0.1225,
-0.1425, 0.1650, 0.1900, 0.2175, 0.2450, 0.2775, 0.3125, 0.3500, 0.3875,
-0.4300, 0.4725, 0.5175, 0.5675, 0.6150, 0.6675, 0.7200, 0.7750, 0.8300,
-0.8850, 0.9425, 1.0025, 1.0625, 1.1225, 1.1825, 1.2425, 1.3050, 1.3675,
-1.4300, 1.4925, 1.5550, 1.6175, 1.6800, 1.7425, 1.8050, 1.8675, 1.9300,
-1.9925, 2.0550, 2.1175, 2.1800, 2.2425, 2.3050, 2.3675, 2.4300, 2.4925,
-2.5550, 2.6175, 2.6800, 2.7425, 2.8050, 2.8675, 2.9300, 2.9925, 3.0550,
-3.1175, 3.1800, 3.2425, 3.3050, 3.3675, 3.4300, 3.4925, 3.5550, 3.6175,
-3.6800, 3.7425, 3.8050, 3.8675, 3.9300, 3.9925, 4.0550, 4.1175, 4.1800,
-4.3050, 4.4300, 4.5550, 4.6800, 4.8050), c(11.44500, 1.32000, 1.19750,
-1.07500, 0.95750,0.84250, 0.78750, 0.73250, 0.68000, 0.62750, 0.57750,
-0.53000, 0.48500, 0.44000, 0.39750, 0.35750, 0.32000, 0.28500, 0.25250,
-0.22250, 0.19500, 0.17000, 0.14750, 0.12750, 0.10750, 0.09250, 0.07750,
-0.06500, 0.05500, 0.04500, 0.03750, 0.03000, 0.02500, 0.02000, 0.01500,
-0.01250, 0.01000, 0.00750, 0.00500, 0.00500, 0.00250, 0.00250, 0.00250,
-0.00250, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024,
-0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024,
-0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024,
-0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024,
-0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024,
-0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024, 0.00024),
-2, 0.0537, 0.0539, 1, 3, 94.7, as.Date("2024-02-29"), as.Date("2024-02-25"),
-as.Date("2023-12-18"), "fed_fund_rate", "USD")
+0.00750, 0.00500, 0.00500, 0.00250, 0.00250, 0.00250, 0.00250,
+rep(0.00024, 47)),
+c(seq(93.25, 93.875, 0.125),  seq(93.9375, 98.8125, 0.0625),
+seq(98.875, 99.5, 0.125)),
+c(0.0025, 0.0050, 0.0075, 0.0125, 0.0175, 0.0300, 0.0350, 0.0425,
+0.0525, 0.0625, 0.0750, 0.0900, 0.1050, 0.1225, 0.1425, 0.1650, 0.1900,
+0.2175, 0.2450, 0.2775, 0.3125, 0.3500, 0.3875, 0.4300, 0.4725, 0.5175,
+0.5675, 0.6150, 0.6675, 0.7200, 0.7750, 0.8300, 0.8850, 0.9425, 1.0025,
+1.0625, 1.1225, 1.1825, 1.2425, 1.3050, 1.3675, 1.4300, 1.4925, 1.5550,
+1.6175, 1.6800, 1.7425, 1.8050, 1.8675, 1.9300, 1.9925, 2.0550, 2.1175,
+2.1800, 2.2425, 2.3050, 2.3675, 2.4300, 2.4925, 2.5550, 2.6175, 2.6800,
+2.7425, 2.8050, 2.8675, 2.9300, 2.9925, 3.0550, 3.1175, 3.1800, 3.2425,
+3.3050, 3.3675, 3.4300, 3.4925, 3.5550, 3.6175, 3.6800, 3.7425, 3.8050,
+3.8675, 3.9300, 3.9925, 4.0550, 4.1175, 4.1800, 4.3050, 4.4300, 4.5550,
+4.6800, 4.8050),
+c(seq(93.25, 93.875, 0.125),  seq(93.9375, 98.8125, 0.0625),
+seq(98.875, 99.5, 0.125)),
+2,
+0.0537,
+0.0539,
+1,
+3,
+94.7,
+as.Date("2024-02-29"),
+as.Date("2024-02-25"),
+as.Date("2023-12-18"),
+"fed_fund_rate",
+"USD")
 }
 }
