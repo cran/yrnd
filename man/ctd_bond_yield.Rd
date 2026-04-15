@@ -67,9 +67,9 @@ ctd_bond_yield(
 
 \item{start_date}{a date for the observation date, in Date format}
 
-\item{nationality}{a character for the nationality of the issuer of the bond in the futures contract underlying the option, in character format (NA by default)}
+\item{nationality}{a character for the nationality of the issuer of the bond in the futures contract underlying the option for the plot, in character format (NA by default)}
 
-\item{currency}{a character for the currency in which the futures contract and the options are traded, in character format (NA by default)}
+\item{currency}{a character for the currency in which the futures contract and the options are traded for the plot, in character format (NA by default)}
 }
 \value{
 a series of values for the CtD Bond yield in numeric format, the probability density attached to each value of the CtD Bond yield in numeric format, the cumulative density attached to each value of the CtD Bond yield in numeric format, the type of convergence in numeric format with 0 indicating successful convergence, the mean, the standard deviation, the skewness and the kurtosis of the CtD Bond yields' distribution at options' maturity in numeric format, a plot of the RND of the CtD Bond yields, a plot of the CDF of the CtD Bond yields, quantiles of order 0.1\%, 0.5\%, 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%, 99.5\% and 99.9\% of the distribution of CtD Bond yields at options' maturity, in numeric format

@@ -11,7 +11,6 @@ stir_rate(
   put_strikes,
   nb_log,
   r,
-  r_2,
   day_count_conv,
   cot,
   fut_price,
@@ -35,8 +34,6 @@ stir_rate(
 
 \item{r}{a number for the riskfree discount rate whose maturity is equal to the option's maturity, in numeric format}
 
-\item{r_2}{a number for the riskfree discount rate whose maturity is equal to the futures contract's maturity, in numeric format}
-
 \item{day_count_conv}{a number for the day count convention, 1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360, in numeric format}
 
 \item{cot}{a number for the type of listing of the options, 1 for European options, 2 for American options quoted as futures and 3 for American options, in numeric format}
@@ -49,9 +46,9 @@ stir_rate(
 
 \item{start_date}{a date for the observation date, in Date format}
 
-\item{ref_rate}{a character for the name of the STIR, in character format (NA by default)}
+\item{ref_rate}{a character for the name of the STIR for the plot, in character format (NA by default)}
 
-\item{currency}{a character for the currency in which the futures contract and the options are traded, in character format (NA by default)}
+\item{currency}{a character for the currency in which the futures contract and the options are traded for the plot, in character format (NA by default)}
 }
 \value{
 a series of values for STIR rate in numeric format, the probability density attached to each value of the STIR rate in numeric format, the cumulative density attached to each value of the STIR rate in numeric format, the type of convergence in numeric format with 0 indicating successful convergence, the mean, the standard deviation, the skewness and the kurtosis of the STIR rates' distribution at options maturity in numeric format, a plot of the RND of the STIR rates, a plot of the CDF of the STIR rates, quantiles of order 0.1\%, 0.5\%, 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%, 99.5\% and 99.9\% of the distribution of STIR rates at options' maturity, in numeric format
@@ -85,7 +82,6 @@ c(seq(93.25, 93.875, 0.125),  seq(93.9375, 98.8125, 0.0625),
 seq(98.875, 99.5, 0.125)),
 2,
 0.0537,
-0.0539,
 1,
 3,
 94.7,

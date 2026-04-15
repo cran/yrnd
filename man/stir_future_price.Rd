@@ -46,9 +46,9 @@ stir_future_price(
 
 \item{start_date}{a date for the observation date, in Date format}
 
-\item{ref_rate}{a character for the name of the STIR, in character format (NA by default)}
+\item{ref_rate}{a character for the name of the STIR for the plot, in character format (NA by default)}
 
-\item{currency}{a character for the currency in which the futures contract and the options are traded, in character format (NA by default)}
+\item{currency}{a character for the currency in which the futures contract and the options are traded for the plot, in character format (NA by default)}
 }
 \value{
 the mean and standard deviation of each lognormal density in the mixture and the weight on the first density (for a mixture of 2) or on the first 2 densities (for a mixture of 3) in numeric format, a series of values for the futures contract's price at options maturity in numeric format, the probability density attached to each value of the futures contract's price in numeric format, the cumulative density attached to each value of the futures contract's price in numeric format, the type of convergence in numeric format with 0 indicating successful convergence, the mean, the standard deviation, the skewness and the kurtosis of the futures contract's prices distribution at option's maturity in numeric format, a plot of the RND of the futures prices, a plot of the CDF of the futures prices, quantiles of order 0.1\%, 0.5\%, 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%, 99.5\% and 99.9\% of the distribution of futures prices at options' maturity, in numeric format

@@ -12,8 +12,8 @@
 #' @param fut_matu a date for the maturity date of the futures contract, in Date format
 #' @param option_matu a date for the maturity date of the options, in Date format
 #' @param start_date a date for the observation date, in Date format
-#' @param ref_rate a character for the name of the STIR, in character format (NA by default)
-#' @param currency a character for the currency in which the futures contract and the options are traded, in character format (NA by default)
+#' @param ref_rate a character for the name of the STIR for the plot, in character format (NA by default)
+#' @param currency a character for the currency in which the futures contract and the options are traded for the plot, in character format (NA by default)
 #'
 #' @returns the mean and standard deviation of each lognormal density in the mixture and the weight on the first density (for a mixture of 2) or on the first 2 densities (for a mixture of 3) in numeric format, a series of values for the futures contract's price at options maturity in numeric format, the probability density attached to each value of the futures contract's price in numeric format, the cumulative density attached to each value of the futures contract's price in numeric format, the type of convergence in numeric format with 0 indicating successful convergence, the mean, the standard deviation, the skewness and the kurtosis of the futures contract's prices distribution at option's maturity in numeric format, a plot of the RND of the futures prices, a plot of the CDF of the futures prices, quantiles of order 0.1%, 0.5%, 1%, 5%, 10%, 25%, 50%, 75%, 90%, 95%, 99%, 99.5% and 99.9% of the distribution of futures prices at options' maturity, in numeric format
 #' @export
@@ -60,7 +60,6 @@
 #' "USD")
 #' }
 #'
-
 stir_future_price <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log, r, day_count_conv,
                               cot, fut_price, fut_matu, option_matu, start_date, ref_rate = NA, currency = NA){
 
@@ -91,8 +90,8 @@ stir_future_price <- function(call_prices, call_strikes, put_prices, put_strikes
       call <- function(x, KC){
         d1_C <- (x[1] + x[2]^2 - log(KC))/x[2]
         d2_C <- d1_C - x[2]
-        if(cot %in%c(1, 2)){call <- exp(-r*T)*(FWD*pnorm(d1_C) - KC*pnorm(d2_C))
-        } else(call <- FWD*pnorm(d1_C) - KC*pnorm(d2_C))
+        if(cot %in%c(1, 2)){call <- exp(-r*T)*(exp(x[1] + (x[2]^2/2))*pnorm(d1_C) - KC*pnorm(d2_C))
+        } else(call <- exp(x[1] + (x[2]^2/2))*pnorm(d1_C) - KC*pnorm(d2_C))
       }
 
       call_mix <- function(x, KC){
@@ -108,8 +107,8 @@ stir_future_price <- function(call_prices, call_strikes, put_prices, put_strikes
       put <- function(x, KP){
         d1_C <- (x[1] + x[2]^2 - log(KP))/x[2]
         d2_C <- d1_C - x[2]
-        if(cot %in%c(1, 2)){put <- exp(-r*T)*( -FWD*pnorm(-d1_C) + KP*pnorm(-d2_C))
-        } else(put <- -FWD*pnorm(-d1_C) + KP*pnorm(-d2_C))
+        if(cot %in%c(1, 2)){put <- exp(-r*T)*( -exp(x[1] + (x[2]^2/2))*pnorm(-d1_C) + KP*pnorm(-d2_C))
+        } else(put <- -exp(x[1] + (x[2]^2/2))*pnorm(-d1_C) + KP*pnorm(-d2_C))
       }
 
       put_mix <- function(x, KP){
@@ -296,7 +295,7 @@ stir_future_price <- function(call_prices, call_strikes, put_prices, put_strikes
 
             return(stir_future_price)
 
-          } else {message(paste0("A mixture of ", nb_log, " lognormal distributions is not convient for this data"))}
+          } else {message(paste0("A mixture of ", nb_log, " lognormal distributions is not convenient for this data"))}
         } else {message("impossible to retrieve a density")}
       } else {message("impossible to retrieve a density")}
     } else {message("input dates are not consistent")}

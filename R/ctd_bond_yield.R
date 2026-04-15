@@ -19,8 +19,8 @@
 #' @param fut_matu a date for the maturity date of the futures contract, in Date format
 #' @param option_matu a date for the maturity date of the options, in Date format
 #' @param start_date a date for the observation date, in Date format
-#' @param nationality a character for the nationality of the issuer of the bond in the futures contract underlying the option, in character format (NA by default)
-#' @param currency a character for the currency in which the futures contract and the options are traded, in character format (NA by default)
+#' @param nationality a character for the nationality of the issuer of the bond in the futures contract underlying the option for the plot, in character format (NA by default)
+#' @param currency a character for the currency in which the futures contract and the options are traded for the plot, in character format (NA by default)
 #'
 #' @returns a series of values for the CtD Bond yield in numeric format, the probability density attached to each value of the CtD Bond yield in numeric format, the cumulative density attached to each value of the CtD Bond yield in numeric format, the type of convergence in numeric format with 0 indicating successful convergence, the mean, the standard deviation, the skewness and the kurtosis of the CtD Bond yields' distribution at options' maturity in numeric format, a plot of the RND of the CtD Bond yields, a plot of the CDF of the CtD Bond yields, quantiles of order 0.1%, 0.5%, 1%, 5%, 10%, 25%, 50%, 75%, 90%, 95%, 99%, 99.5% and 99.9% of the distribution of CtD Bond yields at options' maturity, in numeric format
 #' @export
@@ -63,7 +63,6 @@
 #' "EUR")
 #' }
 #'
-
 ctd_bond_yield <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log, r, r_2, day_count_conv,
                            cot, conv_factor, ctd_cp, ctd_matu, cp_f, ctd_N, sett, fut_price, fut_matu,
                            option_matu, start_date, nationality = NA, currency = NA){
@@ -187,8 +186,8 @@ ctd_bond_yield <- function(call_prices, call_strikes, put_prices, put_strikes, n
         d1_C <- (x[1] + x[2]^2 - log(KC))/x[2]
         d2_C <- d1_C - x[2]
         if(cot %in%c(1, 2)){
-          call <- exp(-r*T)*( FWD*pnorm(d1_C) - KC*pnorm(d2_C))
-        } else(call <- FWD*pnorm(d1_C) - KC*pnorm(d2_C))
+          call <- exp(-r*T)*( exp(x[1] + (x[2]^2/2))*pnorm(d1_C) - KC*pnorm(d2_C))
+        } else(call <- exp(x[1] + (x[2]^2/2))*pnorm(d1_C) - KC*pnorm(d2_C))
       }
 
       call_mix <- function(x, KC){
@@ -205,8 +204,8 @@ ctd_bond_yield <- function(call_prices, call_strikes, put_prices, put_strikes, n
         d1_C <- (x[1] + x[2]^2 - log(KP))/x[2]
         d2_C <- d1_C - x[2]
         if(cot %in%c(1, 2)){
-          put <- exp(-r*T)*( -FWD*pnorm(-d1_C) + KP*pnorm(-d2_C))
-        } else(put <- -FWD*pnorm(d1_C) + KP*pnorm(d2_C))
+          put <- exp(-r*T)*( -exp(x[1] + (x[2]^2/2))*pnorm(-d1_C) + KP*pnorm(-d2_C))
+        } else(put <- -exp(x[1] + (x[2]^2/2))*pnorm(d1_C) + KP*pnorm(d2_C))
       }
 
       put_mix <- function(x, KP){
@@ -380,6 +379,13 @@ ctd_bond_yield <- function(call_prices, call_strikes, put_prices, put_strikes, n
                    return(sub_3(x[c(1, 4, 7)], y) + sub_3(x[c(2, 5, 8)], y) + sub_3( c(x[c(3, 6)], 1 - sum(x[7:8])), y))) }
 
           DNR_y <- PDF_y(params, PX_3)
+          remove <- which(is.na(DNR_y))
+
+          if(length(remove) > 0){
+            PX_3 <- PX_3[-remove]
+            DNR_y <- DNR_y[-remove]
+          } else { PX_3 <- PX_3
+          DNR_y <- DNR_y}
 
           df_y <- data.frame(price = PX_3[-1], density = DNR_y)
           cdf_y <- data.frame(price = PX_3[-c(1,2)], cdf = cumsum(rollmean(DNR_y, 2)*diff(PX_3[-1])))
@@ -427,7 +433,7 @@ ctd_bond_yield <- function(call_prices, call_strikes, put_prices, put_strikes, n
                                        "kurt", "rnd_y_plot", "cdf_y_plot", "quantiles")
 
             return(ctd_bond_yield)
-          } else {message(paste0("A mixture of ", nb_log, " lognormal distributions is not convient for this data"))}
+          } else {message(paste0("A mixture of ", nb_log, " lognormal distributions is not convenient for this data"))}
         } else {message("impossible to retrieve a density")}
       } else {message("impossible to retrieve a density")}
     } else {message("input dates are not consistent")}

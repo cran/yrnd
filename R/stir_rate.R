@@ -6,15 +6,14 @@
 #' @param put_strikes a vector of put strikes attached to the put prices, in numeric format
 #' @param nb_log a number for the number of lognormal densities in the lognormal mixture to model the futures contracts, either 2 or 3, in numeric format
 #' @param r a number for the riskfree discount rate whose maturity is equal to the option's maturity, in numeric format
-#' @param r_2 a number for the riskfree discount rate whose maturity is equal to the futures contract's maturity, in numeric format
 #' @param day_count_conv a number for the day count convention, 1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360, in numeric format
 #' @param cot a number for the type of listing of the options, 1 for European options, 2 for American options quoted as futures and 3 for American options, in numeric format
 #' @param fut_price a number for the futures contract price on calibration date, in numeric format
 #' @param fut_matu a date for the maturity date of the futures contract, in Date format
 #' @param option_matu a date for the maturity date of the options, in Date format
 #' @param start_date a date for the observation date, in Date format
-#' @param ref_rate a character for the name of the STIR, in character format (NA by default)
-#' @param currency a character for the currency in which the futures contract and the options are traded, in character format (NA by default)
+#' @param ref_rate a character for the name of the STIR for the plot, in character format (NA by default)
+#' @param currency a character for the currency in which the futures contract and the options are traded for the plot, in character format (NA by default)
 #'
 #' @returns a series of values for STIR rate in numeric format, the probability density attached to each value of the STIR rate in numeric format, the cumulative density attached to each value of the STIR rate in numeric format, the type of convergence in numeric format with 0 indicating successful convergence, the mean, the standard deviation, the skewness and the kurtosis of the STIR rates' distribution at options maturity in numeric format, a plot of the RND of the STIR rates, a plot of the CDF of the STIR rates, quantiles of order 0.1%, 0.5%, 1%, 5%, 10%, 25%, 50%, 75%, 90%, 95%, 99%, 99.5% and 99.9% of the distribution of STIR rates at options' maturity, in numeric format
 #' @export
@@ -51,7 +50,6 @@
 #' seq(98.875, 99.5, 0.125)),
 #' 2,
 #' 0.0537,
-#' 0.0539,
 #' 1,
 #' 3,
 #' 94.7,
@@ -62,10 +60,10 @@
 #' "USD")
 #' }
 
-stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log, r, r_2, day_count_conv,
+stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log, r, day_count_conv,
                       cot, fut_price, fut_matu, option_matu, start_date, ref_rate = NA, currency = NA){
 
-  if(length(nb_log) == 1 & length(r) == 1 & length(r_2) == 1 & length(day_count_conv) == 1 & length(cot) == 1 &
+  if(length(nb_log) == 1 & length(r) == 1 & length(day_count_conv) == 1 & length(cot) == 1 &
      length(fut_price) == 1 & length(fut_matu) == 1 & length(option_matu) == 1 & length(start_date) == 1 &
      length(ref_rate) == 1 & length(currency) == 1 & length(call_prices) > 1 & length(call_strikes) > 1 &
      length(put_prices) > 1 & length(put_strikes) > 1){
@@ -77,36 +75,23 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
 
       if(day_count_conv == 1){
         contract_fut <- contract_fut %>% mutate(option_term = as.numeric(option_matu - start_date)/
-                                                  as.numeric(ceiling_date(option_matu, "year") - floor_date(start_date, "year")),
-                                                res_term = as.numeric(fut_matu - option_matu)/
-                                                  as.numeric(ceiling_date(fut_matu, "year") - floor_date(option_matu, "year") ))
+                                                  as.numeric(ceiling_date(option_matu, "year") - floor_date(start_date, "year")))
       } else if(day_count_conv == 2){
-        contract_fut <- contract_fut %>% mutate(option_term = as.numeric(option_matu - start_date)/360,
-                                                res_term = as.numeric(fut_matu - option_matu)/360)
+        contract_fut <- contract_fut %>% mutate(option_term = as.numeric(option_matu - start_date)/360)
       } else if(day_count_conv == 3){
-        contract_fut <- contract_fut %>% mutate(option_term =as.numeric(option_matu - start_date)/365,
-                                                res_term = as.numeric(fut_matu - option_matu)/365)
+        contract_fut <- contract_fut %>% mutate(option_term =as.numeric(option_matu - start_date)/365)
       } else {
         contract_fut <- contract_fut %>% mutate(stub_1 = max(0, 30 - as.numeric(format(start_date, "%d"))),
                                                 stub_2 = min(30, as.numeric(format(option_matu, "%d"))),
                                                 plain_months = round((as.numeric(floor_date(option_matu, "months") -
                                                                                    ceiling_date(start_date, "months")))/30),
-                                                option_term = (stub_1 + stub_2 + plain_months*30)/360,
-                                                stub_1_res = 30 - as.numeric(format(option_matu, "%d")),
-                                                stub_2_res = min(30, as.numeric(format(fut_matu, "%d"))),
-                                                plain_months_res = round(as.numeric(floor_date(fut_matu, "months") -
-                                                                                      ceiling_date(option_matu, "months") )/30),
-                                                res_term =  (stub_1_res + stub_2_res + max(0, plain_months_res)*30)/360)}
-
-      rate_table <- data.frame(term = contract_fut$option_term + c(0, contract_fut$res_term), rates = c(r, r_2)) %>%
-        mutate(d_fact = term*rates)
-      fwd_1 <- diff(rate_table$d_fact)/diff(rate_table$term)
+                                                option_term = (stub_1 + stub_2 + plain_months*30)/360)}
 
       call <- function(x, KC){
         d1_C <- (x[1] + x[2]^2 - log(KC))/x[2]
         d2_C <- d1_C - x[2]
-        if(cot %in%c(1, 2)){call <- exp(-r*T)*(FWD*pnorm(d1_C) - KC*pnorm(d2_C))
-        } else(call <- FWD*pnorm(d1_C) - KC*pnorm(d2_C))
+        if(cot %in%c(1, 2)){call <- exp(-r*T)*(exp(x[1] + (x[2]^2/2))*pnorm(d1_C) - KC*pnorm(d2_C))
+        } else(call <- exp(x[1] + (x[2]^2/2))*pnorm(d1_C) - KC*pnorm(d2_C))
       }
 
       call_mix <- function(x, KC){
@@ -122,8 +107,8 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
       put <- function(x, KP){
         d1_C <- (x[1] + x[2]^2 - log(KP))/x[2]
         d2_C <- d1_C - x[2]
-        if(cot %in%c(1, 2)){put <- exp(-r*T)*( -FWD*pnorm(-d1_C) + KP*pnorm(-d2_C))
-        } else(put <- -FWD*pnorm(-d1_C) + KP*pnorm(-d2_C))
+        if(cot %in%c(1, 2)){put <- exp(-r*T)*( -exp(x[1] + (x[2]^2/2))*pnorm(-d1_C) + KP*pnorm(-d2_C))
+        } else(put <- -exp(x[1] + (x[2]^2/2))*pnorm(-d1_C) + KP*pnorm(-d2_C))
       }
 
       put_mix <- function(x, KP){
@@ -266,11 +251,10 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
 
         if(DNR_2[1] < DNR_2[2] & DNR_2[1] & DNR_2[length(DNR_2) - 1] > DNR_2[length(DNR_2)] & min(DNR_2)%in%DNR_2[c(1, length(DNR_2))]){
 
-          PX_3 <- rev(100*exp(-fwd_1*contract_fut$res_term) - PX_2*exp(-fwd_1*contract_fut$res_term))
+          PX_3 <- rev(100 - PX_2)
 
           sub_3 <- function(x, y){
-            x[3]*(dlnorm( (100 - exp(fwd_1*contract_fut$res_term)*y),
-                          meanlog = x[1], sdlog = x[2])*exp(fwd_1*contract_fut$res_term) ) }
+            x[3]*(dlnorm( 100 - y, meanlog = x[1], sdlog = x[2]) ) }
 
           PDF_y <- function(x, y){
             ifelse(length(params) == 5,
@@ -278,6 +262,13 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
                    return(sub_3(x[c(1, 4, 7)], y) + sub_3(x[c(2, 5, 8)], y) + sub_3( c(x[c(3, 6)], 1 - sum(x[7:8])), y))) }
 
           DNR_y <- PDF_y(params, PX_3)
+          remove <- which(is.na(DNR_y))
+
+          if(length(remove) > 0){
+            PX_3 <- PX_3[-remove]
+            DNR_y <- DNR_y[-remove]
+          } else { PX_3 <- PX_3
+          DNR_y <- DNR_y}
 
           df_y <- data.frame(price = PX_3, density = DNR_y)
 
@@ -329,10 +320,9 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
                                   "rnd_r_plot", "cdf_r_plot", "quantiles")
             return(stir_rate)
 
-          } else {message(paste0("A mixture of ", nb_log, " lognormal distributions is not convient for this data"))}
+          } else {message(paste0("A mixture of ", nb_log, " lognormal distributions is not convenient for this data"))}
         } else {message("impossible to retrieve a density")}
       } else {message("impossible to retrieve a density")}
     } else {message("input dates are not consistent")}
   } else {message("inputs do not have the required length")}
 }
-

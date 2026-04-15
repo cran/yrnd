@@ -7,7 +7,7 @@
 bond_future_charac_bbg(bbg_tickers)
 }
 \arguments{
-\item{bbg_tickers}{a vector of Bloomberg tickers, in character format}
+\item{bbg_tickers}{a vector of Bloomberg tickers of futures contracts, in character format}
 }
 \value{
 for each bond future contract, provided it has a Cheapest-to-Deliver Bond, the maturity date of the futures contract, in Date format, its currency in character format, the conversion factor assigned by the exchange to the Cheapest-to-Deliver Bond of the futures contract in numeric format, the maturity date of the CtD Bond in Date format, the coupon rate of the CtD Bond in numeric format, the frequency of coupon payment of the CtD Bond in character format, the day count convention of the CtD Bond in character format
