@@ -32,11 +32,11 @@ stir_rate(
 
 \item{nb_log}{a number for the number of lognormal densities in the lognormal mixture to model the futures contracts, either 2 or 3, in numeric format}
 
-\item{r}{a number for the riskfree discount rate whose maturity is equal to the option's maturity, in numeric format}
+\item{r}{a number for the riskfree spot rate whose maturity is equal to the option's maturity, in numeric format}
 
 \item{day_count_conv}{a number for the day count convention, 1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360, in numeric format}
 
-\item{cot}{a number for the type of listing of the options, 1 for European options, 2 for American options quoted as futures and 3 for American options, in numeric format}
+\item{cot}{a number for the options' style, 1 for European options, 2 for American options and 3 for American options with futures-style margin, in numeric format}
 
 \item{fut_price}{a number for the futures contract price on calibration date, in numeric format}
 
@@ -51,7 +51,7 @@ stir_rate(
 \item{currency}{a character for the currency in which the futures contract and the options are traded for the plot, in character format (NA by default)}
 }
 \value{
-a series of values for STIR rate in numeric format, the probability density attached to each value of the STIR rate in numeric format, the cumulative density attached to each value of the STIR rate in numeric format, the type of convergence in numeric format with 0 indicating successful convergence, the mean, the standard deviation, the skewness and the kurtosis of the STIR rates' distribution at options maturity in numeric format, a plot of the RND of the STIR rates, a plot of the CDF of the STIR rates, quantiles of order 0.1\%, 0.5\%, 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%, 99.5\% and 99.9\% of the distribution of STIR rates at options' maturity, in numeric format
+a discretized domain of the future rate by increments of 0.001\% in numeric format, the probability density for each value in the discretized domain in numeric format, the cumulative density for each value in the discretized domain in numeric format, the type of convergence in the non linear least squares optimization in numeric format (0 indicating successful convergence), the mean, standard deviation, skewness and kurtosis of the distribution of future rates in numeric format, quantiles of order 0.1\%, 0.5\%, 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%, 99.5\% and 99.9\% of the distribution in numeric format, the mode the distribution in numeric format, a plot of the RND and a plot of the CDF of the future rate
 }
 \description{
 stir_rate
@@ -83,7 +83,7 @@ seq(98.875, 99.5, 0.125)),
 2,
 0.0537,
 1,
-3,
+2,
 94.7,
 as.Date("2024-02-29"),
 as.Date("2024-02-25"),

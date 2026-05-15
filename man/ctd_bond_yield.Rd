@@ -39,13 +39,13 @@ ctd_bond_yield(
 
 \item{nb_log}{a number for the number of lognormal densities in the lognormal mixture to model the futures contracts, either 2 or 3, in numeric format}
 
-\item{r}{a number for the riskfree discount rate whose maturity is equal to the option's maturity, in numeric format}
+\item{r}{a number for the riskfree spot rate whose maturity is equal to the option's maturity, in numeric format}
 
-\item{r_2}{a number for the riskfree discount rate whose maturity is equal to the futures contract's maturity, in numeric format}
+\item{r_2}{a number for the riskfree spot rate whose maturity is equal to the futures contract's maturity, in numeric format}
 
 \item{day_count_conv}{a number for the day count convention, 1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360, in numeric format}
 
-\item{cot}{a number for the type of listing of the options, 1 for European options, 2 for American options quoted as futures and 3 for American options, in numeric format}
+\item{cot}{a number for the options' style, 1 for European options, 2 for American options and 3 for American options with futures-style margin, in numeric format}
 
 \item{conv_factor}{a number for the conversion factor assigned by the futures exchange to the Cheapest-to-Deliver Bond, in numeric format}
 
@@ -53,7 +53,7 @@ ctd_bond_yield(
 
 \item{ctd_matu}{a date for the maturity date of the Cheapest-to-Deliver Bond in the basket of deliverable bonds of the futures contract, in Date format}
 
-\item{cp_f}{a number for the frequency of coupon payment of the Cheapest-to-Deliver Bond, in numeric format. Worth 1 if the frequency is annual and 0.5 if frequency is semi-annual}
+\item{cp_f}{a number for the frequency of coupon payment of the Cheapest-to-Deliver Bond, either 1 if the frequency is annual or 2 if semi-annual}
 
 \item{ctd_N}{a number for the value of the principal of the Cheapest-to-Deliver Bond, in numeric format}
 
@@ -72,7 +72,7 @@ ctd_bond_yield(
 \item{currency}{a character for the currency in which the futures contract and the options are traded for the plot, in character format (NA by default)}
 }
 \value{
-a series of values for the CtD Bond yield in numeric format, the probability density attached to each value of the CtD Bond yield in numeric format, the cumulative density attached to each value of the CtD Bond yield in numeric format, the type of convergence in numeric format with 0 indicating successful convergence, the mean, the standard deviation, the skewness and the kurtosis of the CtD Bond yields' distribution at options' maturity in numeric format, a plot of the RND of the CtD Bond yields, a plot of the CDF of the CtD Bond yields, quantiles of order 0.1\%, 0.5\%, 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%, 99.5\% and 99.9\% of the distribution of CtD Bond yields at options' maturity, in numeric format
+a discretized domain of the Cheapest-to-Deliver bond yield in numeric format, the probability density for each value in the discretized domain in numeric format, the cumulative density for each value in the discretized domain in numeric format, the type of convergence in the non linear least squares optimization in numeric format (0 indicating successful convergence), the mean, standard deviation, skewness and kurtosis of the distribution of the Cheapest-to-Deliver bond yield in numeric format, quantiles of order 0.1\%, 0.5\%, 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%, 99.5\% and 99.9\% of the distribution in numeric format, the mode the distribution in numeric format, a plot of the RND and a plot of the CDF of the Cheapest-to-Deliver bond yield
 }
 \description{
 ctd_bond_yield
@@ -97,7 +97,7 @@ seq(106, 127.5, 0.5),
 0.893,
 0.0435,
 as.Date("2033-11-01"),
-0.5,
+2,
 100,
 2,
 116.17,

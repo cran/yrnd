@@ -5,14 +5,14 @@
 #' @param put_prices a vector of put prices, in numeric format
 #' @param put_strikes a vector of put strikes attached to the put prices, in numeric format
 #' @param nb_log a number for the number of lognormal densities in the lognormal mixture to model the futures contracts, either 2 or 3, in numeric format
-#' @param r a number for the riskfree discount rate whose maturity is equal to the option's maturity, in numeric format
-#' @param r_2 a number for the riskfree discount rate whose maturity is equal to the futures contract's maturity, in numeric format
+#' @param r a number for the riskfree spot rate whose maturity is equal to the option's maturity, in numeric format
+#' @param r_2 a number for the riskfree spot rate whose maturity is equal to the futures contract's maturity, in numeric format
 #' @param day_count_conv a number for the day count convention, 1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360, in numeric format
-#' @param cot a number for the type of listing of the options, 1 for European options, 2 for American options quoted as futures and 3 for American options, in numeric format
+#' @param cot a number for the options' style, 1 for European options, 2 for American options and 3 for American options with futures-style margin, in numeric format
 #' @param conv_factor a number for the conversion factor assigned by the futures exchange to the Cheapest-to-Deliver Bond, in numeric format
 #' @param ctd_cp a number for the coupon rate of the Cheapest-to-Deliver Bond, in numeric format
 #' @param ctd_matu a date for the maturity date of the Cheapest-to-Deliver Bond in the basket of deliverable bonds of the futures contract, in Date format
-#' @param cp_f a number for the frequency of coupon payment of the Cheapest-to-Deliver Bond, in numeric format. Worth 1 if the frequency is annual and 0.5 if frequency is semi-annual
+#' @param cp_f a number for the frequency of coupon payment of the Cheapest-to-Deliver Bond, either 1 if the frequency is annual or 2 if semi-annual
 #' @param ctd_N a number for the value of the principal of the Cheapest-to-Deliver Bond, in numeric format
 #' @param sett a number for the number of days between the ex-coupon date and the coupon payment date of the Cheapest-to-Deliver Bond, in numeric format
 #' @param fut_price a number for the futures contract price on calibration date, in numeric format
@@ -22,7 +22,7 @@
 #' @param nationality a character for the nationality of the issuer of the bond in the futures contract underlying the option for the plot, in character format (NA by default)
 #' @param currency a character for the currency in which the futures contract and the options are traded for the plot, in character format (NA by default)
 #'
-#' @returns a series of values for the CtD Bond yield in numeric format, the probability density attached to each value of the CtD Bond yield in numeric format, the cumulative density attached to each value of the CtD Bond yield in numeric format, the type of convergence in numeric format with 0 indicating successful convergence, the mean, the standard deviation, the skewness and the kurtosis of the CtD Bond yields' distribution at options' maturity in numeric format, a plot of the RND of the CtD Bond yields, a plot of the CDF of the CtD Bond yields, quantiles of order 0.1%, 0.5%, 1%, 5%, 10%, 25%, 50%, 75%, 90%, 95%, 99%, 99.5% and 99.9% of the distribution of CtD Bond yields at options' maturity, in numeric format
+#' @returns a discretized domain of the Cheapest-to-Deliver bond yield in numeric format, the probability density for each value in the discretized domain in numeric format, the cumulative density for each value in the discretized domain in numeric format, the type of convergence in the non linear least squares optimization in numeric format (0 indicating successful convergence), the mean, standard deviation, skewness and kurtosis of the distribution of the Cheapest-to-Deliver bond yield in numeric format, quantiles of order 0.1%, 0.5%, 1%, 5%, 10%, 25%, 50%, 75%, 90%, 95%, 99%, 99.5% and 99.9% of the distribution in numeric format, the mode the distribution in numeric format, a plot of the RND and a plot of the CDF of the Cheapest-to-Deliver bond yield
 #' @export
 #' @importFrom stats approx constrOptim density dlnorm nlminb plnorm pnorm
 #' @importFrom utils head tail
@@ -52,7 +52,7 @@
 #' 0.893,
 #' 0.0435,
 #' as.Date("2033-11-01"),
-#' 0.5,
+#' 2,
 #' 100,
 #' 2,
 #' 116.17,
@@ -63,6 +63,7 @@
 #' "EUR")
 #' }
 #'
+
 ctd_bond_yield <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log, r, r_2, day_count_conv,
                            cot, conv_factor, ctd_cp, ctd_matu, cp_f, ctd_N, sett, fut_price, fut_matu,
                            option_matu, start_date, nationality = NA, currency = NA){
@@ -120,36 +121,36 @@ ctd_bond_yield <- function(call_prices, call_strikes, put_prices, put_strikes, n
 
       if(bond_fut$fut_matu < bond_fut$curr_cp_dt){
         if(day_count_conv == 1){
-          bond_fut <- bond_fut %>% mutate(acc_matu = bond_fut$Nomi*ctd_cp*cp_f*as.numeric(fut_matu - prev_cp_dt - sett)/
+          bond_fut <- bond_fut %>% mutate(acc_matu = bond_fut$Nomi*ctd_cp/cp_f*as.numeric(fut_matu - prev_cp_dt - sett)/
                                             as.numeric(ceiling_date(fut_matu, "year") - floor_date(fut_matu, "year") ))
         } else if(day_count_conv == 2) {
-          bond_fut <- bond_fut %>% mutate(acc_matu = bond_fut$Nomi*ctd_cp*cp_f*as.numeric(fut_matu - prev_cp_dt - sett)/360)
+          bond_fut <- bond_fut %>% mutate(acc_matu = bond_fut$Nomi*ctd_cp/cp_f*as.numeric(fut_matu - prev_cp_dt - sett)/360)
         } else if(day_count_conv == 3){
-          bond_fut <- bond_fut %>% mutate(acc_matu = bond_fut$Nomi*ctd_cp*cp_f*as.numeric(fut_matu - prev_cp_dt - sett)/365)
+          bond_fut <- bond_fut %>% mutate(acc_matu = bond_fut$Nomi*ctd_cp/cp_f*as.numeric(fut_matu - prev_cp_dt - sett)/365)
         } else{
           bond_fut <- bond_fut %>% mutate(stub_1 = max(0, 30 - as.numeric(format(prev_cp_dt + sett, "%d"))),
                                           stub_2 = min(30, as.numeric(format(fut_matu, "%d"))),
                                           plain_months = round(as.numeric(floor_date(fut_matu, "months") -
                                                                             ceiling_date(prev_cp_dt + sett, "months") )/30),
-                                          acc_matu = bond_fut$Nomi*ctd_cp*cp_f/360*(stub_2 + stub_1 + max(0, plain_months)*30)) }
+                                          acc_matu = bond_fut$Nomi*ctd_cp/cp_f/360*(stub_2 + stub_1 + max(0, plain_months)*30)) }
       } else{
         if(day_count_conv == 1){
           bond_fut <- bond_fut %>% mutate(res_term_2 = as.numeric(fut_matu - curr_cp_dt - sett)/
                                             as.numeric(ceiling_date(fut_matu, "year") - floor_date(fut_matu, "year") ),
-                                          acc_matu = bond_fut$Nomi*ctd_cp*cp_f*res_term_2 )
+                                          acc_matu = bond_fut$Nomi*ctd_cp/cp_f*res_term_2 )
         } else if(day_count_conv == 2) {
           bond_fut <- bond_fut %>% mutate(res_term_2 = as.numeric(fut_matu - curr_cp_dt - sett)/360,
-                                          acc_matu = bond_fut$Nomi*ctd_cp*cp_f*res_term_2)
+                                          acc_matu = bond_fut$Nomi*ctd_cp/cp_f*res_term_2)
         } else if(day_count_conv == 3){
           bond_fut <- bond_fut %>% mutate(res_term_2 = as.numeric(fut_matu - curr_cp_dt - sett)/365,
-                                          acc_matu = bond_fut$Nomi*ctd_cp*cp_f*res_term_2)
+                                          acc_matu = bond_fut$Nomi*ctd_cp/cp_f*res_term_2)
         } else{
           bond_fut <- bond_fut %>% mutate(stub_1 = max(0, 30 - as.numeric(format(curr_cp_dt + sett, "%d"))),
                                           stub_2 = min(30, as.numeric(format(fut_matu, "%d"))),
                                           plain_months = round(as.numeric(floor_date(fut_matu, "months") -
                                                                             ceiling_date(curr_cp_dt + sett, "months") )/30),
                                           res_term_2 = (stub_1 + stub_2 + max(0, plain_months)*30)/360,
-                                          acc_matu = bond_fut$Nomi*ctd_cp*cp_f*res_term_2)}
+                                          acc_matu = bond_fut$Nomi*ctd_cp/cp_f*res_term_2)}
         rate_table <- rate_table %>%
           add_row(term = bond_fut$res_term + bond_fut$option_term - bond_fut$res_term_2)
         rate_table$rates[3] <- approx(rate_table$term[1:2], rate_table$rates[1:2], xout = rate_table$term[3],
@@ -169,17 +170,17 @@ ctd_bond_yield <- function(call_prices, call_strikes, put_prices, put_strikes, n
           as.numeric(bond_fut$curr_cp_dt - bond_fut$prev_cp_dt)
         } else {stub <- as.numeric(diff(head(true_cp_dt, 2)))/
           as.numeric(ceiling_date(bond_fut$prev_cp_dt + sett, "year") - floor_date(bond_fut$prev_cp_dt + sett, "year")) }
-        cp_dt_2 <- stub + c(0, seq(1, length(true_cp_dt) - 2)*bond_fut$cp_f)
+        cp_dt_2 <- stub + c(0, seq(1, length(true_cp_dt) - 2)/bond_fut$cp_f)
       } else if(day_count_conv == 2){ cp_dt_2 <- tail(as.numeric(true_cp_dt - first(true_cp_dt)), -1)/360
       } else if(day_count_conv == 3){ cp_dt_2 <- tail(as.numeric(true_cp_dt - first(true_cp_dt)), -1)/365
       } else {stub <- (max(0, 30 - as.numeric(format(true_cp_dt[1], "%d"))) +
                          as.numeric(round((floor_date(true_cp_dt[2], "months") - ceiling_date(true_cp_dt[1], "months"))/30))*30 +
                          min(30, as.numeric(format(true_cp_dt[2], "%d"))))/360
-      cp_dt_2 <- stub + c(0, seq(1, length(true_cp_dt) - 2)*bond_fut$cp_f)}
+      cp_dt_2 <- stub + c(0, seq(1, length(true_cp_dt) - 2)/bond_fut$cp_f)}
 
       cp_dt_2 <- list(list(cp_dt_2))
-      cf_matu <- bond_fut$Nomi*(1 + bond_fut$ctd_cp*bond_fut$cp_f)
-      cf_other <- split(rep(bond_fut$ctd_cp*bond_fut$cp_f*bond_fut$Nomi, sapply(cp_dt_2, lengths) - 1),
+      cf_matu <- bond_fut$Nomi*(1 + bond_fut$ctd_cp/bond_fut$cp_f)
+      cf_other <- split(rep(bond_fut$ctd_cp/bond_fut$cp_f*bond_fut$Nomi, sapply(cp_dt_2, lengths) - 1),
                         rep(seq_along(cp_dt_2), sapply(cp_dt_2, lengths) - 1))
 
       call <- function(x, KC){
@@ -346,7 +347,9 @@ ctd_bond_yield <- function(call_prices, call_strikes, put_prices, put_strikes, n
 
         NCDF <- CDF(params, PX_2)
 
-        if(DNR_2[1] < DNR_2[2] & DNR_2[1] & DNR_2[length(DNR_2) - 1] > DNR_2[length(DNR_2)] & min(DNR_2)%in%DNR_2[c(1, length(DNR_2))]){
+        if(DNR_2[1] < DNR_2[2] &
+           DNR_2[length(DNR_2) - 1] > DNR_2[length(DNR_2)] &
+           min(DNR_2)%in%DNR_2[c(1, length(DNR_2))]){
 
           dirty <- function(x){
             dcf <- mapply("/", list(c(unlist(cf_other), cf_matu)), mapply("^", 1 + x, list(unlist(cp_dt_2)), SIMPLIFY = F), SIMPLIFY = F)
@@ -356,11 +359,13 @@ ctd_bond_yield <- function(call_prices, call_strikes, put_prices, put_strikes, n
             if(bond_fut$fut_matu < bond_fut$curr_cp_dt){
               tri <- mapply(xirr, cf = mapply(c, -(x*bond_fut$conv_factor + bond_fut$acc_matu )*exp( -fwd_1*bond_fut$res_term),
                                               cf_other, cf_matu, SIMPLIFY = F),
-                            tau = mapply(c, 0, mapply(unlist, cp_dt_2, SIMPLIFY = F), SIMPLIFY = F))}
-            else{tri <- mapply(xirr, cf = mapply(c, -(x*bond_fut$conv_factor + bond_fut$acc_matu +
-                                                        bond_fut$ctd_cp*bond_fut$cp_f*bond_fut$Nomi*exp(fwd_2*bond_fut$res_term_2) )*exp( -fwd_1*bond_fut$res_term),
-                                                 cf_other, cf_matu, SIMPLIFY = F),
-                               tau = mapply(c, 0, mapply(unlist, cp_dt_2, SIMPLIFY = F), SIMPLIFY = F))}
+                            tau = mapply(c, 0, mapply(unlist, cp_dt_2, SIMPLIFY = F), SIMPLIFY = F),
+                            comp_freq = cp_f)
+            } else{tri <- mapply(xirr, cf = mapply(c, -(x*bond_fut$conv_factor + bond_fut$acc_matu +
+                                                          bond_fut$ctd_cp/bond_fut$cp_f*bond_fut$Nomi*exp(fwd_2*bond_fut$res_term_2) )*exp( -fwd_1*bond_fut$res_term),
+                                                   cf_other, cf_matu, SIMPLIFY = F),
+                                 tau = mapply(c, 0, mapply(unlist, cp_dt_2, SIMPLIFY = F), SIMPLIFY = F),
+                                 comp_freq = as.list(cp_f))}
           }
 
           PX_3 <- rev(tri(PX_2))
@@ -369,7 +374,7 @@ ctd_bond_yield <- function(call_prices, call_strikes, put_prices, put_strikes, n
               x[3]*dlnorm( (exp(fwd_1*bond_fut$res_term)*dirty(y[-1]) - bond_fut$acc_matu)/bond_fut$conv_factor,
                            meanlog = x[1], sdlog = x[2])*exp(fwd_1*bond_fut$res_term)/bond_fut$conv_factor*(-diff(dirty(y)))/diff(y)
             } else{x[3]*dlnorm( (exp(fwd_1*bond_fut$res_term)*dirty(y[-1]) - bond_fut$acc_matu -
-                                   bond_fut$ctd_cp*bond_fut$cp_f*bond_fut$Nomi*exp(fwd_2*bond_fut$res_term_2))/bond_fut$conv_factor,
+                                   bond_fut$ctd_cp/bond_fut$cp_f*bond_fut$Nomi*exp(fwd_2*bond_fut$res_term_2))/bond_fut$conv_factor,
                                 meanlog = x[1], sdlog = x[2])*exp(fwd_1*bond_fut$res_term)/bond_fut$conv_factor*(-diff(dirty(y)))/diff(y) }
           }
 
@@ -395,6 +400,7 @@ ctd_bond_yield <- function(call_prices, call_strikes, put_prices, put_strikes, n
           SD_y <- sqrt(moments_y(2))
           SK_y <- moments_y(3)/SD_y^3
           KU_y <- moments_y(4)/SD_y^4
+          moments_y <- c(mean = E_y, stddev = SD_y, skewness = SK_y, kurtosis = KU_y)
 
           thres <- c(0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 0.90, 0.95, 0.99, 0.995, 0.999)
 
@@ -405,32 +411,37 @@ ctd_bond_yield <- function(call_prices, call_strikes, put_prices, put_strikes, n
 
             qt <- data.frame(quantiles) %>% rename_with(~paste0("q", 100*thres))
 
+            mode_y <- PX_3[which.max(DNR_y)]
+
             graph <- PX_3 >= qt$q0.1 & PX_3 <= qt$q99.9
             PX_graph <- PX_3[graph]
             DNR_graph <- DNR_y[graph]
             NCDF_graph <- cdf_y$cdf[graph]
             df_graph <- data.frame(price = PX_graph, density = DNR_graph)
             cdf_graph <- data.frame(price = PX_graph, cdf = NCDF_graph)
+
             pdf_y <- ggplot() + geom_line(data = df_graph, aes(x = price, y = density)) +
-              labs(x = "yield (%)", y = "probability density") + theme_bw() +
+              labs(x = paste0("yield to maturity (%) of bond maturing on ", bond_charac_2$ctd_matu),
+                   y = "probability density") + theme_bw() +
               theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
-              labs(title = paste0(bond_charac_2$nationality, " sovereign bond yield (bond maturing on ",
-                                  bond_charac_2$ctd_matu, " as of ", bond_charac_2$start_date, ")"),
+              labs(title = paste0(round(as.numeric(bond_fut$ctd_matu - bond_fut$fut_matu)/365), "-year ",
+                                  bond_charac_2$nationality, " bond yield on ",
+                                  bond_charac_2$option_matu, " as of ", bond_charac_2$start_date),
                    subtitle = paste0("Probability Density for a mixture of ", nb_log, " lognormals")) +
               scale_x_continuous(labels = scales::percent)
 
             ncdf_y <- ggplot() + geom_line(data = cdf_graph, aes(x = price, y = cdf)) +
-              labs(x = "yield (%)", y = "cumulative probability") + theme_bw() +
+              labs(x = paste0("yield to maturity (%) of bond maturing on ", bond_charac_2$ctd_matu),
+                   y = "cumulative probability") + theme_bw() +
               theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
-              labs(title = paste0(bond_charac_2$nationality, " sovereign bond yield (bond maturing on ",
-                                  bond_charac_2$ctd_matu, " as of ", bond_charac_2$start_date, ")") ,
+              labs(title = paste0(round(as.numeric(bond_fut$ctd_matu - bond_fut$fut_matu)/365), "-year ",
+                                  bond_charac_2$nationality, " bond yield on ",
+                                  bond_charac_2$option_matu, " as of ", bond_charac_2$start_date),
                    subtitle = paste0("Cumulative Probability for a mixture of ", nb_log, " lognormals")) +
               scale_x_continuous(labels = scales::percent)
 
-            ctd_bond_yield <- list(df_y$price, df_y$density, cdf_y$cdf, solu$convergence, E_y, SD_y,
-                                   SK_y, KU_y, pdf_y, ncdf_y, qt)
-            names(ctd_bond_yield) <- c("yields", "rnd_y", "cdf_y", "CV", "mean", "stddev", "skew",
-                                       "kurt", "rnd_y_plot", "cdf_y_plot", "quantiles")
+            ctd_bond_yield <- list(df_y$price, df_y$density, cdf_y$cdf, solu$convergence, moments_y, qt, mode_y, pdf_y, ncdf_y)
+            names(ctd_bond_yield) <- c("yields", "rnd_y", "cdf_y", "CV", "moments", "quantiles", "mode", "rnd_y_plot", "cdf_y_plot")
 
             return(ctd_bond_yield)
           } else {message(paste0("A mixture of ", nb_log, " lognormal distributions is not convenient for this data"))}

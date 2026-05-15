@@ -5,9 +5,9 @@
 #' @param put_prices a vector of put prices, in numeric format
 #' @param put_strikes a vector of put strikes attached to the put prices, in numeric format
 #' @param nb_log a number for the number of lognormal densities in the lognormal mixture to model the futures contracts, either 2 or 3, in numeric format
-#' @param r a number for the riskfree discount rate whose maturity is equal to the option's maturity, in numeric format
+#' @param r a number for the riskfree spot rate whose maturity is equal to the option's maturity, in numeric format
 #' @param day_count_conv a number for the day count convention, 1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360, in numeric format
-#' @param cot a number for the type of listing of the options, 1 for European options, 2 for American options quoted as futures and 3 for American options, in numeric format
+#' @param cot a number for the options' style, 1 for European options, 2 for American options and 3 for American options with futures-style margin, in numeric format
 #' @param fut_price a number for the futures contract price on calibration date, in numeric format
 #' @param fut_matu a date for the maturity date of the futures contract, in Date format
 #' @param option_matu a date for the maturity date of the options, in Date format
@@ -15,7 +15,7 @@
 #' @param ref_rate a character for the name of the STIR for the plot, in character format (NA by default)
 #' @param currency a character for the currency in which the futures contract and the options are traded for the plot, in character format (NA by default)
 #'
-#' @returns a series of values for STIR rate in numeric format, the probability density attached to each value of the STIR rate in numeric format, the cumulative density attached to each value of the STIR rate in numeric format, the type of convergence in numeric format with 0 indicating successful convergence, the mean, the standard deviation, the skewness and the kurtosis of the STIR rates' distribution at options maturity in numeric format, a plot of the RND of the STIR rates, a plot of the CDF of the STIR rates, quantiles of order 0.1%, 0.5%, 1%, 5%, 10%, 25%, 50%, 75%, 90%, 95%, 99%, 99.5% and 99.9% of the distribution of STIR rates at options' maturity, in numeric format
+#' @returns a discretized domain of the future rate by increments of 0.001% in numeric format, the probability density for each value in the discretized domain in numeric format, the cumulative density for each value in the discretized domain in numeric format, the type of convergence in the non linear least squares optimization in numeric format (0 indicating successful convergence), the mean, standard deviation, skewness and kurtosis of the distribution of future rates in numeric format, quantiles of order 0.1%, 0.5%, 1%, 5%, 10%, 25%, 50%, 75%, 90%, 95%, 99%, 99.5% and 99.9% of the distribution in numeric format, the mode the distribution in numeric format, a plot of the RND and a plot of the CDF of the future rate
 #' @export
 #' @importFrom stats approx constrOptim density dlnorm nlminb plnorm pnorm
 #' @importFrom utils head tail
@@ -51,7 +51,7 @@
 #' 2,
 #' 0.0537,
 #' 1,
-#' 3,
+#' 2,
 #' 94.7,
 #' as.Date("2024-02-29"),
 #' as.Date("2024-02-25"),
@@ -59,6 +59,7 @@
 #' "fed_fund_rate",
 #' "USD")
 #' }
+
 
 stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log, r, day_count_conv,
                       cot, fut_price, fut_matu, option_matu, start_date, ref_rate = NA, currency = NA){
@@ -249,7 +250,9 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
 
         NCDF <- CDF(params, PX_2)
 
-        if(DNR_2[1] < DNR_2[2] & DNR_2[1] & DNR_2[length(DNR_2) - 1] > DNR_2[length(DNR_2)] & min(DNR_2)%in%DNR_2[c(1, length(DNR_2))]){
+        if(DNR_2[1] < DNR_2[2] &
+           DNR_2[length(DNR_2) - 1] > DNR_2[length(DNR_2)] &
+           min(DNR_2)%in%DNR_2[c(1, length(DNR_2))]){
 
           PX_3 <- rev(100 - PX_2)
 
@@ -280,6 +283,7 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
           SD_y <- sqrt(moments_y(2))
           SK_y <- moments_y(3)/SD_y^3
           KU_y <- moments_y(4)/SD_y^4
+          moments_y <- c(mean = E_y, stddev = SD_y, skewness = SK_y, kurtosis = KU_y)
 
           thres <- c(0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 0.90, 0.95, 0.99, 0.995, 0.999)
 
@@ -292,6 +296,8 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
 
             qt <- data.frame(quantiles) %>% rename_with(~paste0("q", 100*thres))
 
+            mode_y <- PX_3[which.max(DNR_y)]
+
             graph <- PX_3 >= qt$q0.1 & PX_3 <= qt$q99.9
             PX_graph <- PX_3[graph]
             DNR_graph <- DNR_y[graph]
@@ -301,23 +307,23 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
             cdf_graph <- data.frame(price = PX_graph, cdf = NCDF_graph)
 
             pdf_y <- ggplot() + geom_line(data = df_graph, aes(x = price, y = density)) +
-              labs(x = "rate (%)", y = "probability density") + theme_bw() +
+              labs(x = paste0("future rate (%) of maturity ", contract_fut$fut_matu),
+                   y = "probability density") + theme_bw() +
               theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
-              labs(title = paste0(contract_fut$name, " rate (%) on ", contract_fut$option_matu, " as of ",
+              labs(title = paste0(contract_fut$name, " future rate (%) on ", contract_fut$option_matu, " as of ",
                                   contract_fut$start_date),
                    subtitle = paste0("Probability Density for a mixture of ", nb_log, " lognormals"))
 
             ncdf_y <- ggplot() + geom_line(data = cdf_graph, aes(x = price, y = cdf)) +
-              labs(x = "rate (%)", y = "cumulative probability") + theme_bw() +
+              labs(x = paste0("future rate (%) of maturity ", contract_fut$fut_matu),
+                   y = "probability density") + theme_bw() +
               theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
-              labs(title = paste0(contract_fut$name, " rate (%) on ", contract_fut$option_matu, " as of ",
+              labs(title = paste0(contract_fut$name, " future rate (%) on ", contract_fut$option_matu, " as of ",
                                   contract_fut$start_date),
                    subtitle = paste0("Cumulative Probability for a mixture of ", nb_log, " lognormals"))
 
-            stir_rate <- list(df_y$price, df_y$density,  cdf_y$cdf, solu$convergence, E_y, SD_y, SK_y, KU_y,
-                              pdf_y, ncdf_y, qt)
-            names(stir_rate) <- c("rates", "rnd_r", "cdf_r", "CV", "mean", "stddev", "skew", "kurt",
-                                  "rnd_r_plot", "cdf_r_plot", "quantiles")
+            stir_rate <- list(df_y$price, df_y$density,  cdf_y$cdf, solu$convergence, moments_y, qt, mode_y, pdf_y, ncdf_y)
+            names(stir_rate) <- c("domain", "rnd_r", "cdf_r", "CV", "moments", "quantiles", "mode", "rnd_r_plot", "cdf_r_plot")
             return(stir_rate)
 
           } else {message(paste0("A mixture of ", nb_log, " lognormal distributions is not convenient for this data"))}

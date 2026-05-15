@@ -5,9 +5,9 @@
 #' @param put_prices a vector of put prices, in numeric format
 #' @param put_strikes a vector of put strikes attached to the put prices, in numeric format
 #' @param nb_log a number for the number of lognormal densities in the lognormal mixture to model the futures contracts, either 2 or 3, in numeric format
-#' @param r a number for the riskfree discount rate whose maturity is equal to the option's maturity, in numeric format
+#' @param r a number for the riskfree spot rate whose maturity is equal to the option's maturity, in numeric format
 #' @param day_count_conv a number for the day count convention, 1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360, in numeric format
-#' @param cot a number for the type of listing of the options, 1 for European options, 2 for American options quoted as futures and 3 for American options, in numeric format
+#' @param cot a number for the options' style, 1 for European options, 2 for American options and 3 for American options with futures-style margin, in numeric format
 #' @param ctd_matu a date for the maturity date of the Cheapest-to-Deliver Bond in the basket of deliverable bonds of the futures contract, in Date format
 #' @param fut_price a number for the futures contract price on calibration date, in numeric format
 #' @param fut_matu a date for the maturity date of the futures contract, in Date format
@@ -16,7 +16,7 @@
 #' @param nationality a character for the nationality of the issuer of the bond in the futures contract underlying the option for the plot, in character format (NA by default)
 #' @param currency a character for the currency in which the futures contract and the options are traded for the plot, in character format (NA by default)
 #'
-#' @returns the mean and standard deviation of each lognormal density in the mixture and the weight on the first density (for a mixture of 2) or on the first 2 densities (for a mixture of 3) in numeric format, a series of values for the futures contract's price at options maturity in numeric format, the probability density attached to each value of the futures contract's price in numeric format, the cumulative density attached to each value of the futures contract's price in numeric format, the type of convergence in numeric format with 0 indicating successful convergence, the mean, the standard deviation, the skewness and the kurtosis of the futures contract's prices distribution at option's maturity in numeric format, a plot of the RND of the futures prices, a plot of the CDF of the futures prices, quantiles of order 0.1%, 0.5%, 1%, 5%, 10%, 25%, 50%, 75%, 90%, 95%, 99%, 99.5% and 99.9% of the distribution of futures prices at options' maturity, in numeric format
+#' @returns the mean and standard deviation of each component lognormal density and the weight on the first density (for a mixture of 2) or on the first 2 densities (for a mixture of 3) in numeric format,  a discretized domain of the futures price by increments of 0.001 units of the currency of the futures contract, in numeric format, the probability density for each value in the discretized domain in numeric format, the cumulative density for each value in the discretized domain in numeric format, the type of convergence in the non linear least squares optimization in numeric format (0 indicating successful convergence), the mean, standard deviation, skewness and kurtosis of the distribution of futures prices in numeric format, quantiles of order 0.1%, 0.5%, 1%, 5%, 10%, 25%, 50%, 75%, 90%, 95%, 99%, 99.5% and 99.9% of the distribution in numeric format, the mode of the distribution in numeric format, the options' prices predicted by the model in numeric format, a plot of the RND and a plot of the CDF of the futures price
 #' @export
 #' @importFrom stats approx constrOptim density dlnorm nlminb plnorm pnorm
 #' @importFrom utils head tail
@@ -50,6 +50,7 @@
 #' "EUR")
 #' }
 #'
+
 bond_future_price <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log, r, day_count_conv, cot,
                               ctd_matu, fut_price, fut_matu, option_matu, start_date, nationality = NA, currency = NA){
 
@@ -113,10 +114,9 @@ bond_future_price <- function(call_prices, call_strikes, put_prices, put_strikes
       suppressWarnings({
 
         if(cot %in%c(1, 3)){
-          MSE_mix <- function(x){
-            MSE_mix <- sum((C - call_mix(x, KC))^2, na.rm = T) + sum((P - put_mix(x, KP))^2, na.rm = T) + (FWD - esp_mix(x))^2
-            return(MSE_mix) }
-        } else { MSE_mix <- function(x){
+          model_prices <- function(x){
+            return(list(model_call_price = call_mix(x, KC), model_put_price = put_mix(x, KP)))}
+        } else {model_prices <- function(x){
           C_INF <- pmax(esp_mix(x) - KC, call_mix(x, KC))
           C_SUP <- exp(r*T)*call_mix(x, KC)
           P_INF <- pmax(KP - esp_mix(x), put_mix(x, KP))
@@ -127,11 +127,15 @@ bond_future_price <- function(call_prices, call_strikes, put_prices, put_strikes
           w_put <- itm_fwd_put*first(tail(x, 2)) + (1 - itm_fwd_put)*last(x)
           CALL <- w_call*C_INF + (1 - w_call)*C_SUP
           PUT <- w_put*P_INF + (1 - w_put)*P_SUP
-          MSE_mix <- sum((C - CALL)^2, na.rm = T) + sum((P - PUT)^2, na.rm = T) + (FWD - esp_mix(x))^2
-          return(MSE_mix)}
+          return(list(model_call_price = CALL, model_put_price = PUT))}
         }
 
+        MSE_mix <- function(x){
+          MSE_mix <- sum((C - model_prices(x)$model_call_price)^2, na.rm = T) +
+            sum((P - model_prices(x)$model_put_price)^2, na.rm = T) + (FWD - esp_mix(x))^2
+          return(MSE_mix)}
       })
+
       objective <- function(x){
         ifelse( length(PR) !=2, MSE_mix( c(x[1:4], PR[i])), MSE_mix( c(x[1:6], PR[i, 1], PR[i, 2] ))) }
 
@@ -192,6 +196,8 @@ bond_future_price <- function(call_prices, call_strikes, put_prices, put_strikes
       })
       params <- solu$par[1:(3*nb_log - 1)]
 
+      model_prices <- model_prices(c(params, 0, 0))
+
       range_px <- range(c(KP, KC))
       PX <- Reduce(seq, 1e3*range_px)*1e-3
 
@@ -237,13 +243,16 @@ bond_future_price <- function(call_prices, call_strikes, put_prices, put_strikes
 
         NCDF <- CDF(params, PX_2)
 
-        if(DNR_2[1] < DNR_2[2] & DNR_2[1] & DNR_2[length(DNR_2) - 1] > DNR_2[length(DNR_2)] & min(DNR_2)%in%DNR_2[c(1, length(DNR_2))]){
+        if(DNR_2[1] < DNR_2[2] &
+           DNR_2[length(DNR_2) - 1] > DNR_2[length(DNR_2)] &
+           min(DNR_2)%in%DNR_2[c(1, length(DNR_2))]){
 
           E <- sum(rollmean(PX_2*DNR_2, 2)*diff(PX_2))
           moments <- function(x){ return(sum(rollmean(DNR_2*(PX_2 - E)^x , 2)*diff(PX_2)))}
           SD <- sqrt(moments(2))
           SK <- moments(3)/SD^3
           KU <- moments(4)/SD^4
+          moments <- c(mean = E, stddev = SD, skewness = SK, kurtosis = KU)
 
           df <- data.frame(price = PX_2, density = DNR_2)
           cdf <- data.frame(price = PX_2, cdf = NCDF)
@@ -256,6 +265,9 @@ bond_future_price <- function(call_prices, call_strikes, put_prices, put_strikes
               quantiles[[j]] <- mean(df$price[c(min(which(cdf$cdf > thres[j] - 1e-3)), max(which(cdf$cdf < thres[j] + 1e-3)))])}
 
             qt <- data.frame(quantiles) %>% rename_with(~paste0("q", 100*thres))
+
+            mode <- PX_2[which.max(DNR_2)]
+
             graph <- PX_2 >= qt$q0.1 & PX_2 <= qt$q99.9
             PX_graph <- PX_2[graph]
             DNR_graph <- DNR_2[graph]
@@ -264,23 +276,29 @@ bond_future_price <- function(call_prices, call_strikes, put_prices, put_strikes
             df_graph <- data.frame(price = PX_graph, density = DNR_graph)
             cdf_graph <- data.frame(price = PX_graph, cdf = NCDF_graph)
 
+            raw_bond_term <- as.numeric(bond_fut$ctd_matu - bond_fut$fut_matu)/365
+            if(raw_bond_term <  2.5){ bond_term <- round(raw_bond_term/2)*2
+            } else if (raw_bond_term < 5.5) { bond_term <- round(raw_bond_term/5)*5
+            } else {bond_term <- round(raw_bond_term/10)*10}
+
             pdf <- ggplot() + geom_line(data = df_graph, aes(x = price, y = density)) +
-              labs(x = paste0("futures price (", bond_fut$currency, ")"), y = "probability density") + theme_bw() +
+              labs(x = paste0("futures price (", bond_fut$currency, ") of maturity ", bond_fut$fut_matu),
+                   y = "probability density") + theme_bw() +
               theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
-              labs(title = paste0(round(as.numeric(bond_fut$ctd_matu - bond_fut$start_date)/365/10)*10, "-year ",
-                                  bond_fut$nationality, " bond futures price as of ", bond_fut$start_date),
+              labs(title = paste0(bond_term, "-y ", bond_fut$nationality, " bond futures price on ",
+                                  bond_fut$option_matu, " as of ", bond_fut$start_date),
                    subtitle = paste0("Probability Density for a mixture of ", nb_log, " lognormals"))
 
             ncdf <- ggplot() + geom_line(data = cdf_graph, aes(x = price, y = cdf)) +
-              labs(x = paste0("futures price (", bond_fut$currency, ")"), y = "cumulative probability") + theme_bw() +
+              labs(x = paste0("futures price (", bond_fut$currency, ") of maturity ", bond_fut$fut_matu),
+                   y = "probability density") + theme_bw() +
               theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
-              labs(title = paste0(round(as.numeric(bond_fut$ctd_matu - bond_fut$start_date)/365/10)*10, "-year ",
-                                  bond_fut$nationality, " bond futures price as of ", bond_fut$start_date),
+              labs(title = paste0(bond_term, "-y ", bond_fut$nationality, " bond futures price on ",
+                                  bond_fut$option_matu, " as of ", bond_fut$start_date),
                    subtitle = paste0("Cumulative Probability for a mixture of ", nb_log, " lognormals"))
 
-            bond_future_price <- list(params, df$price, df$density, cdf$cdf, solu$convergence, E, SD, SK, KU, pdf, ncdf, qt)
-            names(bond_future_price) <- c("params", "prices", "rnd", "cdf", "CV", "mean", "stddev", "skew", "kurt", "rnd_plot",
-                                          "cdf_plot", "quantiles")
+            bond_future_price <- list(params, df$price, df$density, cdf$cdf, solu$convergence, moments, qt, mode, model_prices, pdf, ncdf)
+            names(bond_future_price) <- c("params", "prices", "rnd", "cdf", "CV", "moments", "quantiles", "mode", "model_prices", "rnd_plot", "cdf_plot")
 
             return(bond_future_price)
 
@@ -290,4 +308,3 @@ bond_future_price <- function(call_prices, call_strikes, put_prices, put_strikes
     } else {message("input dates are not consistent")}
   } else {message("inputs do not have the required length")}
 }
-
