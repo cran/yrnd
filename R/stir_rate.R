@@ -15,7 +15,7 @@
 #' @param ref_rate a character for the name of the STIR for the plot, in character format (NA by default)
 #' @param currency a character for the currency in which the futures contract and the options are traded for the plot, in character format (NA by default)
 #'
-#' @returns a discretized domain of the future rate by increments of 0.001% in numeric format, the probability density for each value in the discretized domain in numeric format, the cumulative density for each value in the discretized domain in numeric format, the type of convergence in the non linear least squares optimization in numeric format (0 indicating successful convergence), the mean, standard deviation, skewness and kurtosis of the distribution of future rates in numeric format, quantiles of order 0.1%, 0.5%, 1%, 5%, 10%, 25%, 50%, 75%, 90%, 95%, 99%, 99.5% and 99.9% of the distribution in numeric format, the mode the distribution in numeric format, a plot of the RND and a plot of the CDF of the future rate
+#' @returns a discretized domain of the future rate by increments of 0.001% in numeric format, the probability density for each value in the discretized domain in numeric format, the cumulative density for each value in the discretized domain in numeric format, the type of convergence in the optimization in numeric format (0 indicating successful convergence), the mean, standard deviation, skewness and kurtosis of the distribution of future rates in numeric format, quantiles of order 0.1%, 0.5%, 1%, 5%, 10%, 25%, 50%, 75%, 90%, 95%, 99%, 99.5% and 99.9% of the distribution in numeric format, the mode of the distribution in numeric format, a plot of the RND and a plot of the CDF of the futures rate
 #' @export
 #' @importFrom stats approx constrOptim density dlnorm nlminb plnorm pnorm
 #' @importFrom utils head tail
@@ -60,7 +60,6 @@
 #' "USD")
 #' }
 
-
 stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log, r, day_count_conv,
                       cot, fut_price, fut_matu, option_matu, start_date, ref_rate = NA, currency = NA){
 
@@ -96,15 +95,22 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
       }
 
       call_mix <- function(x, KC){
-        ifelse(length(x) == 7, return(x[5]*call(x[c(1, 3)], KC) + (1 - x[5])*call(x[c(2, 4)], KC) ),
-               return(x[7]*call(x[c(1, 4)], KC) + x[8]*call(x[c(2, 5)], KC) + (1 - sum(x[7:8]))*call(x[c(3, 6)], KC))) }
+        if(cot %in%c(1, 3)){
+          ifelse(length(x) == 5, return(x[5]*call(x[c(1, 3)], KC) + (1 - x[5])*call(x[c(2, 4)], KC) ),
+                 return(x[7]*call(x[c(1, 4)], KC) + x[8]*call(x[c(2, 5)], KC) + (1 - sum(x[7:8]))*call(x[c(3, 6)], KC)))
+        } else{ ifelse(length(x) == 7, return(x[5]*call(x[c(1, 3)], KC) + (1 - x[5])*call(x[c(2, 4)], KC) ),
+                       return(x[7]*call(x[c(1, 4)], KC) + x[8]*call(x[c(2, 5)], KC) + (1 - sum(x[7:8]))*call(x[c(3, 6)], KC))) }
+      }
 
       esp <- function(x){exp(x[1] + (x[2]^2/2))}
 
       esp_mix <- function(x){
-        ifelse(length(x) == 7, x[5]*esp(x[c(1, 3)]) + (1 - x[5])*esp(x[c(2, 4)]),
-               x[7]*esp(x[c(1, 4)]) + x[8]*esp(x[c(2, 5)]) + (1 - sum(x[7:8]))*esp(x[c(3, 6)])) }
-
+        if(cot %in%c(1, 3)){
+          ifelse(length(x) == 5, x[5]*esp(x[c(1, 3)]) + (1 - x[5])*esp(x[c(2, 4)]),
+                 x[7]*esp(x[c(1, 4)]) + x[8]*esp(x[c(2, 5)]) + (1 - sum(x[7:8]))*esp(x[c(3, 6)]))
+        } else{ ifelse(length(x) == 7, x[5]*esp(x[c(1, 3)]) + (1 - x[5])*esp(x[c(2, 4)]),
+                       x[7]*esp(x[c(1, 4)]) + x[8]*esp(x[c(2, 5)]) + (1 - sum(x[7:8]))*esp(x[c(3, 6)])) }
+      }
       put <- function(x, KP){
         d1_C <- (x[1] + x[2]^2 - log(KP))/x[2]
         d2_C <- d1_C - x[2]
@@ -113,21 +119,24 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
       }
 
       put_mix <- function(x, KP){
-        ifelse(length(x) == 7, return(x[5]*put(x[c(1, 3)], KP) + (1 - x[5])*put(x[c(2, 4)], KP) ),
-               return(x[7]*put(x[c(1, 4)], KP) + x[8]*put(x[c(2, 5)], KP) + (1 - sum(x[7:8]))*put(x[c(3, 6)], KP))) }
+        if(cot %in%c(1, 3)){
+          ifelse(length(x) == 5, return(x[5]*put(x[c(1, 3)], KP) + (1 - x[5])*put(x[c(2, 4)], KP) ),
+                 return(x[7]*put(x[c(1, 4)], KP) + x[8]*put(x[c(2, 5)], KP) + (1 - sum(x[7:8]))*put(x[c(3, 6)], KP)))
+        } else {  ifelse(length(x) == 7, return(x[5]*put(x[c(1, 3)], KP) + (1 - x[5])*put(x[c(2, 4)], KP) ),
+                         return(x[7]*put(x[c(1, 4)], KP) + x[8]*put(x[c(2, 5)], KP) + (1 - sum(x[7:8]))*put(x[c(3, 6)], KP)))}
+      }
 
-      if(nb_log == 2) {PR <- seq(0.1, 0.49, 0.01)
-      } else {PR <- seq(0.1, 1, 0.01)
+      if(nb_log == 2) {PR <- seq(0.01, 0.49, 0.01)
+      } else {PR <- seq(0.01, 1, 0.01)
       PR <- expand.grid(c(rep(list(PR), 2)))
       PR <- PR[rowSums(PR) < 1, ]}
 
       suppressWarnings({
 
         if(cot %in%c(1, 3)){
-          MSE_mix <- function(x){
-            MSE_mix <- sum((C - call_mix(x, KC))^2, na.rm = T) + sum((P - put_mix(x, KP))^2, na.rm = T) + (FWD - esp_mix(x))^2
-            return(MSE_mix) }
-        } else { MSE_mix <- function(x){
+          model_prices <- function(x){
+            return(list(model_call_price = call_mix(x, KC), model_put_price = put_mix(x, KP)))}
+        } else {model_prices <- function(x){
           C_INF <- pmax(esp_mix(x) - KC, call_mix(x, KC))
           C_SUP <- exp(r*T)*call_mix(x, KC)
           P_INF <- pmax(KP - esp_mix(x), put_mix(x, KP))
@@ -138,13 +147,24 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
           w_put <- itm_fwd_put*first(tail(x, 2)) + (1 - itm_fwd_put)*last(x)
           CALL <- w_call*C_INF + (1 - w_call)*C_SUP
           PUT <- w_put*P_INF + (1 - w_put)*P_SUP
-          MSE_mix <- sum((C - CALL)^2, na.rm = T) + sum((P - PUT)^2, na.rm = T) + (FWD - esp_mix(x))^2
-          return(MSE_mix)}
+          return(list(model_call_price = CALL, model_put_price = PUT))}
         }
+
+        MSE_mix <- function(x){
+          MSE_mix <- sum((C - model_prices(x)$model_call_price)^2, na.rm = T) +
+            sum((P - model_prices(x)$model_put_price)^2, na.rm = T) + (FWD - esp_mix(x))^2
+          return(MSE_mix)}
       })
 
       objective <- function(x){
-        ifelse( length(PR) !=2, MSE_mix( c(x[1:4], PR[i])), MSE_mix( c(x[1:6], PR[i, 1], PR[i, 2] ))) }
+        if(cot %in% c(1, 3)){
+          ifelse( length(PR) !=2,
+                  MSE_mix( c(x[1:4], PR[i])),
+                  MSE_mix( c(x[1:6], PR[i, 1], PR[i, 2] )))
+        } else{ ifelse( length(PR) !=2,
+                        MSE_mix( c(x[1:4], PR[i], x[6:7])),
+                        MSE_mix( c(x[1:6], PR[i, 1], PR[i, 2], x[9:10] ))) }
+      }
 
       C <- call_prices
       P <- put_prices
@@ -154,21 +174,30 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
       FWD <- contract_fut$fut_price
 
       m1 <- m2 <- m3 <- s1 <- s2 <- s3 <- SCE <- NA
-      if(nb_log == 2){PARA <- as.matrix(data.frame(m1, m2, s1, s2, pr = PR, w1 = 0.5, w2 = 0.5, SCE))
-      } else {PARA <- as.matrix(data.frame(m1, m2, m3, s1, s2, s3, pr1 = PR[, 1], pr2 = PR[, 2], w1 = 0.5, w2 = 0.5,
-                                           p1_p2 = rowSums(PR), SCE))}
-      start <- rep(c(log(FWD), 0.1), each = nb_log)
+
+      if(nb_log == 2){PARA <- as.matrix(data.frame(m1, m2, s1, s2, pi1 = PR, w1 = 0.5, w2 = 0.5, SCE))
+      } else {PARA <- as.matrix(data.frame(m1, m2, m3, s1, s2, s3, pi1 = PR[, 1], pi2 = PR[, 2],
+                                           w1 = 0.5, w2 = 0.5, SCE))}
+
+      start <- c(rep(c(log(FWD), 0.1), each = nb_log), rep(0.5, 2) )
+
       if(FWD != 1){
-        lower <- rep(c( (sign(1 - FWD)*0.5 + 1)*log(FWD), 1e-6), each = nb_log)
-        upper <- rep(c( (sign(FWD - 1)*0.5 + 1)*log(FWD), 0.8), each = nb_log)
+        lower <- c(rep(c( (sign(1 - FWD)*0.5 + 1)*log(FWD), 1e-6), each = nb_log), rep(0, 2) )
+        upper <- c(rep(c( (sign(FWD - 1)*0.5 + 1)*log(FWD), 0.8), each = nb_log), rep(1, 2) )
       } else {
-        lower <- rep(c( 1, 1e-6), each = nb_log)
-        upper <- rep(c( -1, 0.8), each = nb_log) }
+        lower <- c(rep(c( -1, 1e-6), each = nb_log), rep(0, 2) )
+        upper <- c(rep(c( 1, 0.8), each = nb_log), rep(1, 2) ) }
 
       suppressWarnings({
         for (i in 1:length(PR)){
-          sol <- nlminb(start = start, objective = objective, lower = lower, upper = upper, control = list(iter.max = 500))
-          PARA[i, grep( paste( c("m", "s"), collapse = "|"), colnames(PARA))] <- sol$par
+          if(cot %in%c(1,3)){
+            sol <- nlminb(start = start[1:(length(start) - 2)], objective = objective,
+                          lower = lower[1:(length(lower) - 2)], upper = upper[1:(length(upper) - 2)],
+                          control = list(iter.max = 500))
+            PARA[i, grep( paste( c("m", "s"), collapse = "|"), colnames(PARA))] <- sol$par[1:(2*nb_log)]
+          } else{
+            sol <- nlminb(start = start, objective = objective, lower = lower, upper = upper, control = list(iter.max = 500))
+            PARA[i, grep( paste( c("m", "s", "w"), collapse = "|"), colnames(PARA))] <- sol$par[1:(2*nb_log + 2)] }
           PARA[i, "SCE"] <- sol$objective
         }
       })
@@ -177,11 +206,21 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
         PARA <- PARA
       } else{
         if(nb_log == 2){
-          PARA <- data.frame(m1 = start[1], m2 = start[2], s1 = start[3], s2 = start[4],
-                             pr = 0.25, w1 = 0.5, w2 = 0.5, SCE = NA)
-        }else{PARA <- data.frame(m1 = start[1], m2 = start[2], m3 = start[3], s1 = start[4],
-                                 s2 = start[5], s3 = start[6], pr1 = 0.2, pr2 = 0.2, w1 = 0.5, w2 = 0.5, SCE = NA)  }
+          if(cot %in%c(1,3)){
+            PARA <- data.frame(m1 = start[1], m2 = start[2], s1 = start[3], s2 = start[4],
+                               pi1 = 0.5, SCE = NA)
+          } else {PARA <- data.frame(m1 = start[1], m2 = start[2], s1 = start[3], s2 = start[4],
+                                     pi1 = 0.5, w1 = 0.5, w2 = 0.5, SCE = NA)}
+        }else{
+          if(cot %in%c(1,3)){
+            PARA <- data.frame(m1 = start[1], m2 = start[2], m3 = start[3], s1 = start[4],
+                               s2 = start[5], s3 = start[6], pi1 = 0.33, pi2 = 0.33, SCE = NA)
+          } else {data.frame(m1 = start[1], m2 = start[2], m3 = start[3], s1 = start[4],
+                             s2 = start[5], s3 = start[6], pi1 = 0.33, pi2 = 0.33,
+                             w1 = 0.5, w2 = 0.5, SCE = NA) }
+        }
       }
+
 
       PARA <- PARA[ !is.na(PARA[, "m1"]), ]
       if(nrow(PARA) > 1){
@@ -189,19 +228,41 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
       } else {param <- as.matrix(PARA[, -ncol(PARA)], nrow = nrow(PARA))}
 
       param[param == 0] <- 1e-6
-      param <- matrix(param)
 
       L <- U <- rep(0, length(param))
       L[sign(param) == -1] <- 1.5*param[sign(param) == -1]
       L[sign(param) == 1] <- 1e-2*param[sign(param) == 1]
+      L[(length(L) - 1):length(L)] <- 0
+
+      if(cot%in%c(1, 3)){
+        L <- L[1: (length(L)-2)]
+      } else{L <- L }
+
       U[sign(param) == -1] <- 1e-2*param[sign(param) == -1]
       U[sign(param) == 1] <- 1.5*param[sign(param) == 1]
+      U[(length(U) - 1):length(U)] <- 1
+
+      if(cot%in%c(1, 3)){
+        U <- U[1: (length(U)-2)]
+      } else{U <- U }
+
       CI <- c(L, -U)
       UI <- rbind(diag(length(L)), -diag(length(L)))
+
+      if(cot%in%c(1, 3)){
+        param <- param[1: (length(param)-2)]
+      } else{param <- param }
+
+      param <- matrix(param)
+
       suppressWarnings({
         solu <- constrOptim(param, MSE_mix, NULL, ui = UI, ci = CI, mu = 1e-05, method = "Nelder-Mead")
       })
-      params <- solu$par[1:(3*nb_log - 1)]
+
+      if(cot%in%c(1,3) ){ params <- solu$par
+      } else {params <- solu$par[1: (length(solu$par) - 2)]}
+
+      names(params) <- colnames(PARA)[1:(3*nb_log - 1)]
 
       range_px <- range(c(KP, KC))
       PX <- Reduce(seq, 1e3*range_px)*1e-3
@@ -220,113 +281,113 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
 
       DNR <- PDF(params, PX)
 
-      x_axis <- 1e-2
-      PX_2 <- PX
-      range_px_2 <- range_px
-      ratio <- 1
-      while (ratio > 1e-5){
-        integral <- sum(rollmean(PDF(params, PX_2), 2)*diff(PX_2), na.rm = T)
-        range_px_2 <- c(1 - x_axis, 1)*range_px_2
-        PX_2 <- Reduce(seq, 1e3*range_px_2)*1e-3
-        integral_2 <- sum(rollmean(PDF(params, PX_2), 2)*diff(PX_2), na.rm = T)
-        ratio <- integral_2 - integral}
+      if(sum(rollmean(PDF(params, PX), 2)*diff(PX), na.rm = T) < 1){
 
-      ratio <- 1
-      while (ratio > 1e-5){
-        integral <- sum(rollmean(PDF(params, PX_2), 2)*diff(PX_2), na.rm = T)
-        range_px_2 <- c(1, 1 + x_axis)*range_px_2
-        PX_2 <- Reduce(seq, 1e3*range_px_2)*1e-3
-        integral_2 <- sum(rollmean(PDF(params, PX_2), 2)*diff(PX_2), na.rm = T)
-        ratio <- integral_2 - integral}
+        x_axis <- 1e-2
+        PX_2 <- PX
+        range_px_2 <- range_px
+        ratio <- 1
+        while (ratio > 1e-5){
+          integral <- sum(rollmean(PDF(params, PX_2), 2)*diff(PX_2), na.rm = T)
+          range_px_2 <- c(1 - x_axis, 1)*range_px_2
+          PX_2 <- Reduce(seq, 1e3*range_px_2)*1e-3
+          integral_2 <- sum(rollmean(PDF(params, PX_2), 2)*diff(PX_2), na.rm = T)
+          ratio <- integral_2 - integral}
 
-      while (sum(rollmean(PDF(params, PX_2), 2)*diff(PX_2), na.rm = T) < 0.99){
-        range_px_2 <- c(1 - x_axis, 1 + x_axis)*range_px_2
-        PX_2 <- Reduce(seq, 1e3*range_px_2)*1e-3}
+        ratio <- 1
+        while (ratio > 1e-5){
+          integral <- sum(rollmean(PDF(params, PX_2), 2)*diff(PX_2), na.rm = T)
+          range_px_2 <- c(1, 1 + x_axis)*range_px_2
+          PX_2 <- Reduce(seq, 1e3*range_px_2)*1e-3
+          integral_2 <- sum(rollmean(PDF(params, PX_2), 2)*diff(PX_2), na.rm = T)
+          ratio <- integral_2 - integral}
 
-      extension <- diff(range(PX_2))/diff(range(PX))
+        while (sum(rollmean(PDF(params, PX_2), 2)*diff(PX_2), na.rm = T) < 0.9991){
+          range_px_2 <- c(1 - x_axis, 1 + x_axis)*range_px_2
+          PX_2 <- Reduce(seq, 1e3*range_px_2)*1e-3}
 
-      if(extension <= 10){
-        DNR_2 <- PDF(params, PX_2)
+        extension <- diff(range(PX_2))/diff(range(PX))
 
-        NCDF <- CDF(params, PX_2)
+        if(extension <= 10){
+          DNR_2 <- PDF(params, PX_2)
 
-        if(DNR_2[1] < DNR_2[2] &
-           DNR_2[length(DNR_2) - 1] > DNR_2[length(DNR_2)] &
-           min(DNR_2)%in%DNR_2[c(1, length(DNR_2))]){
+          NCDF <- CDF(params, PX_2)
 
-          PX_3 <- rev(100 - PX_2)
+          if(DNR_2[1] < DNR_2[2] &
+             DNR_2[length(DNR_2) - 1] > DNR_2[length(DNR_2)] &
+             min(DNR_2)%in%DNR_2[c(1, length(DNR_2))]){
 
-          sub_3 <- function(x, y){
-            x[3]*(dlnorm( 100 - y, meanlog = x[1], sdlog = x[2]) ) }
+            PX_3 <- rev(100 - PX_2)
 
-          PDF_y <- function(x, y){
-            ifelse(length(params) == 5,
-                   return(sub_3(x[c(1, 3, 5)], y) + sub_3(c(x[c(2, 4)], 1 - x[5]), y) ),
-                   return(sub_3(x[c(1, 4, 7)], y) + sub_3(x[c(2, 5, 8)], y) + sub_3( c(x[c(3, 6)], 1 - sum(x[7:8])), y))) }
+            sub_3 <- function(x, y){
+              x[3]*(dlnorm( 100 - y, meanlog = x[1], sdlog = x[2]) ) }
 
-          DNR_y <- PDF_y(params, PX_3)
-          remove <- which(is.na(DNR_y))
+            PDF_y <- function(x, y){
+              ifelse(length(params) == 5,
+                     return(sub_3(x[c(1, 3, 5)], y) + sub_3(c(x[c(2, 4)], 1 - x[5]), y) ),
+                     return(sub_3(x[c(1, 4, 7)], y) + sub_3(x[c(2, 5, 8)], y) + sub_3( c(x[c(3, 6)], 1 - sum(x[7:8])), y))) }
 
-          if(length(remove) > 0){
-            PX_3 <- PX_3[-remove]
-            DNR_y <- DNR_y[-remove]
-          } else { PX_3 <- PX_3
-          DNR_y <- DNR_y}
+            DNR_y <- PDF_y(params, PX_3)
+            remove <- which(is.na(DNR_y))
 
-          df_y <- data.frame(price = PX_3, density = DNR_y)
+            if(length(remove) > 0){
+              PX_4 <- PX_3[-remove]
+              DNR_y_2 <- DNR_y[-remove]
+            } else { PX_4 <- PX_3
+            DNR_y_2 <- DNR_y}
 
-          NCDF_y <- cumsum(rollmean(DNR_y, 2)*diff(PX_3))
-          cdf_y <- data.frame(price = PX_3[-1], cdf = NCDF_y)
+            df_y <- data.frame(price = PX_4, density = DNR_y_2)
+            NCDF_y <- cumsum(rollmean(DNR_y_2, 2)*diff(PX_4))
+            cdf_y <- data.frame(price = PX_4[-1], cdf = NCDF_y)
 
-          E_y <- sum(rollmean(PX_3*DNR_y, 2)*diff(PX_3))
-          moments_y <- function(x){ return(sum(rollmean(DNR_y*(PX_3 - E_y)^x , 2)*diff(PX_3)))}
-          SD_y <- sqrt(moments_y(2))
-          SK_y <- moments_y(3)/SD_y^3
-          KU_y <- moments_y(4)/SD_y^4
-          moments_y <- c(mean = E_y, stddev = SD_y, skewness = SK_y, kurtosis = KU_y)
+            E_y <- sum(rollmean(PX_4*DNR_y_2, 2)*diff(PX_4))
+            moments_y <- function(x){ return(sum(rollmean(DNR_y_2*(PX_4 - E_y)^x , 2)*diff(PX_4)))}
+            SD_y <- sqrt(moments_y(2))
+            SK_y <- moments_y(3)/SD_y^3
+            KU_y <- moments_y(4)/SD_y^4
+            moments_y <- c(mean = E_y, stddev = SD_y, skewness = SK_y, kurtosis = KU_y)
 
-          thres <- c(0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 0.90, 0.95, 0.99, 0.995, 0.999)
+            thres <- c(0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 0.90, 0.95, 0.99, 0.995, 0.999)
 
-          if(length(which(cdf_y$cdf > last(thres))) >0){
+            if(length(which(cdf_y$cdf > last(thres))) > 0 & length(which(cdf_y$cdf < first(thres))) > 0){
 
-            quantiles <- list()
+              quantiles <- list()
+              for (j in 1:length(thres)){
+                quantiles[[j]] <- mean(df_y$price[c(min(which(cdf_y$cdf > thres[j] - 1e-3)), max(which(cdf_y$cdf < thres[j] + 1e-3)))])}
 
-            for (j in 1:length(thres)){
-              quantiles[[j]] <- mean(df_y$price[c(min(which(cdf_y$cdf > thres[j] - 1e-3)), max(which(cdf_y$cdf < thres[j] + 1e-3)))])}
+              qt <- data.frame(quantiles) %>% rename_with(~paste0("q", 100*thres))
 
-            qt <- data.frame(quantiles) %>% rename_with(~paste0("q", 100*thres))
+              mode_y <- PX_4[which.max(DNR_y_2)]
 
-            mode_y <- PX_3[which.max(DNR_y)]
+              graph <- PX_4 >= qt$q0.1 & PX_4 <= qt$q99.9
+              PX_graph <- PX_4[graph]
+              DNR_graph <- DNR_y_2[graph]
+              NCDF_graph <- cdf_y$cdf[graph]
+              df_graph <- data.frame(price = PX_graph, density = DNR_graph)
+              cdf_graph <- data.frame(price = PX_graph, cdf = NCDF_graph)
 
-            graph <- PX_3 >= qt$q0.1 & PX_3 <= qt$q99.9
-            PX_graph <- PX_3[graph]
-            DNR_graph <- DNR_y[graph]
-            NCDF_graph <- cdf_y$cdf[graph]
+              pdf_y <- ggplot() + geom_line(data = df_graph, aes(x = price, y = density)) +
+                labs(x = paste0("future rate (%) of maturity ", contract_fut$fut_matu),
+                     y = "probability density") + theme_bw() +
+                theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
+                labs(title = paste0(contract_fut$name, " future rate (%) on ", contract_fut$option_matu, " as of ",
+                                    contract_fut$start_date),
+                     subtitle = paste0("Probability Density for a mixture of ", nb_log, " lognormals"))
 
-            df_graph <- data.frame(price = PX_graph, density = DNR_graph)
-            cdf_graph <- data.frame(price = PX_graph, cdf = NCDF_graph)
+              ncdf_y <- ggplot() + geom_line(data = cdf_graph, aes(x = price, y = cdf)) +
+                labs(x = paste0("future rate (%) of maturity ", contract_fut$fut_matu),
+                     y = "probability density") + theme_bw() +
+                theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
+                labs(title = paste0(contract_fut$name, " future rate (%) on ", contract_fut$option_matu, " as of ",
+                                    contract_fut$start_date),
+                     subtitle = paste0("Cumulative Probability for a mixture of ", nb_log, " lognormals"))
 
-            pdf_y <- ggplot() + geom_line(data = df_graph, aes(x = price, y = density)) +
-              labs(x = paste0("future rate (%) of maturity ", contract_fut$fut_matu),
-                   y = "probability density") + theme_bw() +
-              theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
-              labs(title = paste0(contract_fut$name, " future rate (%) on ", contract_fut$option_matu, " as of ",
-                                  contract_fut$start_date),
-                   subtitle = paste0("Probability Density for a mixture of ", nb_log, " lognormals"))
+              stir_rate <- list(df_y$price, df_y$density,  cdf_y$cdf, solu$convergence, moments_y, qt, mode_y, pdf_y, ncdf_y)
+              names(stir_rate) <- c("domain", "rnd_r", "cdf_r", "CV", "moments", "quantiles", "mode", "rnd_r_plot", "cdf_r_plot")
+              return(stir_rate)
 
-            ncdf_y <- ggplot() + geom_line(data = cdf_graph, aes(x = price, y = cdf)) +
-              labs(x = paste0("future rate (%) of maturity ", contract_fut$fut_matu),
-                   y = "probability density") + theme_bw() +
-              theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
-              labs(title = paste0(contract_fut$name, " future rate (%) on ", contract_fut$option_matu, " as of ",
-                                  contract_fut$start_date),
-                   subtitle = paste0("Cumulative Probability for a mixture of ", nb_log, " lognormals"))
-
-            stir_rate <- list(df_y$price, df_y$density,  cdf_y$cdf, solu$convergence, moments_y, qt, mode_y, pdf_y, ncdf_y)
-            names(stir_rate) <- c("domain", "rnd_r", "cdf_r", "CV", "moments", "quantiles", "mode", "rnd_r_plot", "cdf_r_plot")
-            return(stir_rate)
-
-          } else {message(paste0("A mixture of ", nb_log, " lognormal distributions is not convenient for this data"))}
+            } else {message(paste0("A mixture of ", nb_log, " lognormal distributions is not consistent with this option's style"))}
+          } else {message(paste0("A mixture of ", nb_log, " lognormal distributions is not consistent with this option's style"))}
         } else {message("impossible to retrieve a density")}
       } else {message("impossible to retrieve a density")}
     } else {message("input dates are not consistent")}

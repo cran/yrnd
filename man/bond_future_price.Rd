@@ -39,7 +39,7 @@ bond_future_price(
 
 \item{cot}{a number for the options' style, 1 for European options, 2 for American options and 3 for American options with futures-style margin, in numeric format}
 
-\item{ctd_matu}{a date for the maturity date of the Cheapest-to-Deliver Bond in the basket of deliverable bonds of the futures contract, in Date format}
+\item{ctd_matu}{a date for the maturity date of the current Cheapest-to-Deliver Bond in the basket of deliverable bonds of the futures contract, in Date format}
 
 \item{fut_price}{a number for the futures contract price on calibration date, in numeric format}
 
@@ -54,7 +54,7 @@ bond_future_price(
 \item{currency}{a character for the currency in which the futures contract and the options are traded for the plot, in character format (NA by default)}
 }
 \value{
-the mean and standard deviation of each component lognormal density and the weight on the first density (for a mixture of 2) or on the first 2 densities (for a mixture of 3) in numeric format,  a discretized domain of the futures price by increments of 0.001 units of the currency of the futures contract, in numeric format, the probability density for each value in the discretized domain in numeric format, the cumulative density for each value in the discretized domain in numeric format, the type of convergence in the non linear least squares optimization in numeric format (0 indicating successful convergence), the mean, standard deviation, skewness and kurtosis of the distribution of futures prices in numeric format, quantiles of order 0.1\%, 0.5\%, 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%, 99.5\% and 99.9\% of the distribution in numeric format, the mode of the distribution in numeric format, the options' prices predicted by the model in numeric format, a plot of the RND and a plot of the CDF of the futures price
+the mean and standard deviation of each component lognormal density and the weight on the first density (for a mixture of 2) or on the first 2 densities (for a mixture of 3) in numeric format,  a discretized domain of the futures price by increments of 0.001 units of the currency of the futures contract, in numeric format, the probability density for each value in the discretized domain in numeric format, the cumulative density for each value in the discretized domain in numeric format, the type of convergence in the optimization in numeric format (0 indicating successful convergence), the mean, standard deviation, skewness and kurtosis of the distribution of the futures price in numeric format, quantiles of order 0.1\%, 0.5\%, 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%, 99.5\% and 99.9\% of the distribution in numeric format, the mode of the distribution in numeric format, the options' prices predicted by the model in numeric format, a plot of the RND and a plot of the CDF of the futures price
 }
 \description{
 bond_future_price

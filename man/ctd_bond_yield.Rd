@@ -47,17 +47,17 @@ ctd_bond_yield(
 
 \item{cot}{a number for the options' style, 1 for European options, 2 for American options and 3 for American options with futures-style margin, in numeric format}
 
-\item{conv_factor}{a number for the conversion factor assigned by the futures exchange to the Cheapest-to-Deliver Bond, in numeric format}
+\item{conv_factor}{a number for the conversion factor assigned by the futures exchange to the current Cheapest-to-Deliver Bond, in numeric format}
 
-\item{ctd_cp}{a number for the coupon rate of the Cheapest-to-Deliver Bond, in numeric format}
+\item{ctd_cp}{a number for the coupon rate of the current Cheapest-to-Deliver Bond, in numeric format}
 
-\item{ctd_matu}{a date for the maturity date of the Cheapest-to-Deliver Bond in the basket of deliverable bonds of the futures contract, in Date format}
+\item{ctd_matu}{a date for the maturity date of the current Cheapest-to-Deliver Bond in the basket of deliverable bonds of the futures contract, in Date format}
 
-\item{cp_f}{a number for the frequency of coupon payment of the Cheapest-to-Deliver Bond, either 1 if the frequency is annual or 2 if semi-annual}
+\item{cp_f}{a number for the frequency of coupon payment of the current Cheapest-to-Deliver Bond, either 1 if the frequency is annual or 2 if semi-annual}
 
-\item{ctd_N}{a number for the value of the principal of the Cheapest-to-Deliver Bond, in numeric format}
+\item{ctd_N}{a number for the value of the principal of the current Cheapest-to-Deliver Bond, in numeric format}
 
-\item{sett}{a number for the number of days between the ex-coupon date and the coupon payment date of the Cheapest-to-Deliver Bond, in numeric format}
+\item{sett}{a number for the number of days between the ex-coupon date and the coupon payment date of the current Cheapest-to-Deliver Bond, in numeric format}
 
 \item{fut_price}{a number for the futures contract price on calibration date, in numeric format}
 
@@ -72,7 +72,7 @@ ctd_bond_yield(
 \item{currency}{a character for the currency in which the futures contract and the options are traded for the plot, in character format (NA by default)}
 }
 \value{
-a discretized domain of the Cheapest-to-Deliver bond yield in numeric format, the probability density for each value in the discretized domain in numeric format, the cumulative density for each value in the discretized domain in numeric format, the type of convergence in the non linear least squares optimization in numeric format (0 indicating successful convergence), the mean, standard deviation, skewness and kurtosis of the distribution of the Cheapest-to-Deliver bond yield in numeric format, quantiles of order 0.1\%, 0.5\%, 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%, 99.5\% and 99.9\% of the distribution in numeric format, the mode the distribution in numeric format, a plot of the RND and a plot of the CDF of the Cheapest-to-Deliver bond yield
+Provided the futures contract is physically delivered, a discretized domain of the current Cheapest-to-Deliver bond yield in numeric format, the probability density for each value in the discretized domain in numeric format, the cumulative density for each value in the discretized domain in numeric format, the type of convergence in the optimization in numeric format (0 indicating successful convergence), the mean, standard deviation, skewness and kurtosis of the distribution of the current Cheapest-to-Deliver bond yield in numeric format, quantiles of order 0.1\%, 0.5\%, 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%, 99.5\% and 99.9\% of the distribution in numeric format, the mode of the distribution in numeric format, a plot of the RND and a plot of the CDF of the current Cheapest-to-Deliver bond yield
 }
 \description{
 ctd_bond_yield

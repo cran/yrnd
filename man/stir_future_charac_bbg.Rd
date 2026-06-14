@@ -10,7 +10,7 @@ stir_future_charac_bbg(bbg_tickers)
 \item{bbg_tickers}{a vector of Bloomberg tickers of STIR futures contracts, in character format}
 }
 \value{
-for each STIR future contract, its maturity date in Date format, its currency, its listing place and its underlying asset in character format
+for each STIR futures contract, its maturity date in Date format, its currency, its listing place and its underlying asset all in character format
 }
 \description{
 stir_future_charac_bbg

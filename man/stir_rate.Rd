@@ -51,7 +51,7 @@ stir_rate(
 \item{currency}{a character for the currency in which the futures contract and the options are traded for the plot, in character format (NA by default)}
 }
 \value{
-a discretized domain of the future rate by increments of 0.001\% in numeric format, the probability density for each value in the discretized domain in numeric format, the cumulative density for each value in the discretized domain in numeric format, the type of convergence in the non linear least squares optimization in numeric format (0 indicating successful convergence), the mean, standard deviation, skewness and kurtosis of the distribution of future rates in numeric format, quantiles of order 0.1\%, 0.5\%, 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%, 99.5\% and 99.9\% of the distribution in numeric format, the mode the distribution in numeric format, a plot of the RND and a plot of the CDF of the future rate
+a discretized domain of the future rate by increments of 0.001\% in numeric format, the probability density for each value in the discretized domain in numeric format, the cumulative density for each value in the discretized domain in numeric format, the type of convergence in the optimization in numeric format (0 indicating successful convergence), the mean, standard deviation, skewness and kurtosis of the distribution of future rates in numeric format, quantiles of order 0.1\%, 0.5\%, 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%, 99.5\% and 99.9\% of the distribution in numeric format, the mode of the distribution in numeric format, a plot of the RND and a plot of the CDF of the futures rate
 }
 \description{
 stir_rate

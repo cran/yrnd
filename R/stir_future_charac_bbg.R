@@ -2,7 +2,7 @@
 #'
 #' @param bbg_tickers a vector of Bloomberg tickers of STIR futures contracts, in character format
 #'
-#' @returns for each STIR future contract, its maturity date in Date format, its currency, its listing place and its underlying asset in character format
+#' @returns for each STIR futures contract, its maturity date in Date format, its currency, its listing place and its underlying asset all in character format
 #' @export
 #'
 #' @import dplyr
