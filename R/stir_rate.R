@@ -1,21 +1,21 @@
 #' stir_rate
 #'
-#' @param call_prices a vector of call prices, in numeric format
+#' @param call_prices a vector of call prices on a STIR futures, in numeric format
 #' @param call_strikes a vector of call strikes attached to the call prices, in numeric format
-#' @param put_prices a vector of put prices, in numeric format
+#' @param put_prices a vector of put prices on a STIR futures, in numeric format
 #' @param put_strikes a vector of put strikes attached to the put prices, in numeric format
-#' @param nb_log a number for the number of lognormal densities in the lognormal mixture to model the futures contracts, either 2 or 3, in numeric format
-#' @param r a number for the riskfree spot rate whose maturity is equal to the option's maturity, in numeric format
+#' @param nb_log a number for the number of component densities in the lognormal mixture to model the futures' price, either 2 or 3, in numeric format
+#' @param r a number for the riskfree spot rate whose maturity is equal to the options' maturity, in numeric format
 #' @param day_count_conv a number for the day count convention, 1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360, in numeric format
 #' @param cot a number for the options' style, 1 for European options, 2 for American options and 3 for American options with futures-style margin, in numeric format
-#' @param fut_price a number for the futures contract price on calibration date, in numeric format
-#' @param fut_matu a date for the maturity date of the futures contract, in Date format
+#' @param fut_price a number for the STIR futures contract price on calibration date, in numeric format
+#' @param fut_matu a date for the maturity date of the STIR futures contract, in Date format
 #' @param option_matu a date for the maturity date of the options, in Date format
 #' @param start_date a date for the observation date, in Date format
-#' @param ref_rate a character for the name of the STIR for the plot, in character format (NA by default)
-#' @param currency a character for the currency in which the futures contract and the options are traded for the plot, in character format (NA by default)
+#' @param ref_rate a character for the name of the STIR, in character format (NA by default)
+#' @param currency a character for the currency in which the STIR futures and the options are traded, in character format (NA by default)
 #'
-#' @returns a discretized domain of the future rate by increments of 0.001% in numeric format, the probability density for each value in the discretized domain in numeric format, the cumulative density for each value in the discretized domain in numeric format, the type of convergence in the optimization in numeric format (0 indicating successful convergence), the mean, standard deviation, skewness and kurtosis of the distribution of future rates in numeric format, quantiles of order 0.1%, 0.5%, 1%, 5%, 10%, 25%, 50%, 75%, 90%, 95%, 99%, 99.5% and 99.9% of the distribution in numeric format, the mode of the distribution in numeric format, a plot of the RND and a plot of the CDF of the futures rate
+#' @returns a discretized domain of the future rate at option's maturity by increments of 0.001% in numeric format, the probability density for each value in the discretized domain in numeric format, the cumulative density for each value in the discretized domain in numeric format, the type of convergence in the optimization in numeric format (0 indicating successful convergence), the mean, standard deviation, skewness and kurtosis of the distribution of future rates in numeric format, quantiles of order 0.1%, 0.5%, 1%, 5%, 10%, 25%, 50%, 75%, 90%, 95%, 99%, 99.5% and 99.9% of the distribution in numeric format, the mode of the distribution in numeric format, a plot of the RND and a plot of the CDF of the rate futures
 #' @export
 #' @importFrom stats approx constrOptim density dlnorm nlminb plnorm pnorm
 #' @importFrom utils head tail
@@ -199,12 +199,15 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
             sol <- nlminb(start = start, objective = objective, lower = lower, upper = upper, control = list(iter.max = 500))
             PARA[i, grep( paste( c("m", "s", "w"), collapse = "|"), colnames(PARA))] <- sol$par[1:(2*nb_log + 2)] }
           PARA[i, "SCE"] <- sol$objective
+
         }
       })
+
 
       if(length(which(PARA[, ncol(PARA)]!="Inf")) != 0){
         PARA <- PARA
       } else{
+
         if(nb_log == 2){
           if(cot %in%c(1,3)){
             PARA <- data.frame(m1 = start[1], m2 = start[2], s1 = start[3], s2 = start[4],
@@ -221,7 +224,6 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
         }
       }
 
-
       PARA <- PARA[ !is.na(PARA[, "m1"]), ]
       if(nrow(PARA) > 1){
         param <- PARA[which.min(PARA[, "SCE"]), -ncol(PARA)]
@@ -233,7 +235,6 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
       L[sign(param) == -1] <- 1.5*param[sign(param) == -1]
       L[sign(param) == 1] <- 1e-2*param[sign(param) == 1]
       L[(length(L) - 1):length(L)] <- 0
-
       if(cot%in%c(1, 3)){
         L <- L[1: (length(L)-2)]
       } else{L <- L }
@@ -241,7 +242,6 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
       U[sign(param) == -1] <- 1e-2*param[sign(param) == -1]
       U[sign(param) == 1] <- 1.5*param[sign(param) == 1]
       U[(length(U) - 1):length(U)] <- 1
-
       if(cot%in%c(1, 3)){
         U <- U[1: (length(U)-2)]
       } else{U <- U }
@@ -372,7 +372,7 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
                 theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
                 labs(title = paste0(contract_fut$name, " future rate (%) on ", contract_fut$option_matu, " as of ",
                                     contract_fut$start_date),
-                     subtitle = paste0("Probability Density for a mixture of ", nb_log, " lognormals"))
+                     subtitle = paste0("Risk Neutral Probability Density for a mixture of ", nb_log, " lognormals"))
 
               ncdf_y <- ggplot() + geom_line(data = cdf_graph, aes(x = price, y = cdf)) +
                 labs(x = paste0("future rate (%) of maturity ", contract_fut$fut_matu),
@@ -380,14 +380,14 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
                 theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
                 labs(title = paste0(contract_fut$name, " future rate (%) on ", contract_fut$option_matu, " as of ",
                                     contract_fut$start_date),
-                     subtitle = paste0("Cumulative Probability for a mixture of ", nb_log, " lognormals"))
+                     subtitle = paste0("Risk Neutral Cumulative Probability for a mixture of ", nb_log, " lognormals"))
 
               stir_rate <- list(df_y$price, df_y$density,  cdf_y$cdf, solu$convergence, moments_y, qt, mode_y, pdf_y, ncdf_y)
               names(stir_rate) <- c("domain", "rnd_r", "cdf_r", "CV", "moments", "quantiles", "mode", "rnd_r_plot", "cdf_r_plot")
               return(stir_rate)
 
-            } else {message(paste0("A mixture of ", nb_log, " lognormal distributions is not consistent with this option's style"))}
-          } else {message(paste0("A mixture of ", nb_log, " lognormal distributions is not consistent with this option's style"))}
+            } else {message(paste0("A mixture of ", nb_log, " lognormal distributions is not consistent with this options's style"))}
+          } else {message(paste0("A mixture of ", nb_log, " lognormal distributions is not consistent with this options's style"))}
         } else {message("impossible to retrieve a density")}
       } else {message("impossible to retrieve a density")}
     } else {message("input dates are not consistent")}

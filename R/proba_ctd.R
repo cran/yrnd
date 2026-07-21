@@ -172,20 +172,13 @@ proba_ctd <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
         ctd[[i]] <- replicate(nrow(deliv_bonds), ytm[, i] - deliv_bonds$ytm[i]) +
           t(replicate(nrow(ytm), deliv_bonds$ytm)) }
 
-      px <- net_basis <- ctd_conf <- ctd_conf_2 <- list()
+      net_basis <- ctd_conf <- ctd_conf_2 <- list()
 
       for (k in 1:length(ctd)){
-        px[[k]] <- net_basis[[k]] <- list()
-        for (i in 1:nrow(deliv_bonds)){
-          px[[k]][[i]] <- net_basis[[k]][[i]] <- list()
-          for (j in 1:nrow(ctd[[k]])){
-            px[[k]][[i]][[j]] <- dirty(ctd[[k]][j, i])
-          }
-          px[[k]][[i]] <- unlist(px[[k]][[i]])
-          net_basis[[k]][[i]] <-
-            px[[k]][[i]] - (bond_fut$domain*deliv_bonds$conv_factor[i] + deliv_bonds$acc_matu[i])
-        }
-        px[[k]] <- do.call(cbind, px[[k]])
+        net_basis[[k]] <- list()
+        for (i in 1:nrow(deliv_bonds)){  #verif pas de hiérarchie soupon
+          net_basis[[k]][[i]] <- dirty(ctd[[k]][, i]) -
+            (bond_fut$domain*deliv_bonds$conv_factor[i] + deliv_bonds$acc_matu[i]  )}
         net_basis[[k]] <- do.call(cbind, net_basis[[k]])
         ctd_conf_2[[k]] <- ctd_conf[[k]] <- apply(net_basis[[k]], 1, which.min)
         ctd_conf_2[[k]][ctd_conf[[k]] != k] <- 0

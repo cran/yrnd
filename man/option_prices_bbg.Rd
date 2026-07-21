@@ -7,7 +7,7 @@
 option_prices_bbg(fut_bbg_ticker, date)
 }
 \arguments{
-\item{fut_bbg_ticker}{a single Bloomberg ticker of a STIR or bond future contract, in character format}
+\item{fut_bbg_ticker}{a single Bloomberg ticker of a STIR or bond futures contract, in character format}
 
 \item{date}{a date for the recovery of options' closing prices, in Date format}
 }

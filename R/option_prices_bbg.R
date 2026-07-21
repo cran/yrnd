@@ -1,6 +1,6 @@
 #' option_prices_bbg
 #'
-#' @param fut_bbg_ticker a single Bloomberg ticker of a STIR or bond future contract, in character format
+#' @param fut_bbg_ticker a single Bloomberg ticker of a STIR or bond futures contract, in character format
 #' @param date a date for the recovery of options' closing prices, in Date format
 #'
 #' @returns provided there are listed options on the futures, call and put options strike prices and attached call and put options closing market prices in numeric format, the maturity date of the options in Date format, the option's style in character format, the option's currency in character format, the listing place of the options in character format, the closing price of the futures contract in numeric format. When options of different maturities are listed on the same futures contract, this information concerns options whose maturity date is closest to the maturity date of the futures contract.
@@ -25,7 +25,7 @@ option_prices_bbg <- function(fut_bbg_ticker, date){
 
     underlying <- bdp(paste0(fut_bbg_ticker, " Comdty"), "FUT_NOTL_BOND")
 
-    if(underlying == ""){message("please enter a STIR future or a bond future Bloomberg ticker")
+    if(underlying == ""){message("please enter a STIR futures or a bond futures Bloomberg ticker")
     } else{
 
       option_tickers <- lookupSecurity(paste0(fut_bbg_ticker, " Comdty"), yellowkey = "cmdt",

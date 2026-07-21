@@ -5,4 +5,5 @@ utils::globalVariables(c("stub_1", "stub_2", "plain_months", "price", "stub_1_re
                          "PX_LAST", "description", "security", "option", "strike_price",
                          "fut_currency", "fut_exchange", "fut_matu", "fut_notional",
                          "FUT_NOTL_BOND", "ISIN", "Nomi", "coupon", "cp_freq", "cusip",
-                         "day_count_conv_prov", "matu", "proba_ctd_matu", "res_term", "."))
+                         "day_count_conv_prov", "matu", "proba_ctd_matu", "res_term", ".",
+                         "asset_1", "asset_2", "asset", "day_count_conv", "spread", "ctry", "F_0"))

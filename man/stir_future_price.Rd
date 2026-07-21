@@ -22,36 +22,36 @@ stir_future_price(
 )
 }
 \arguments{
-\item{call_prices}{a vector of call prices, in numeric format}
+\item{call_prices}{a vector of call prices on a STIR futures, in numeric format}
 
 \item{call_strikes}{a vector of call strikes attached to the call prices, in numeric format}
 
-\item{put_prices}{a vector of put prices, in numeric format}
+\item{put_prices}{a vector of put prices on a STIR futures, in numeric format}
 
 \item{put_strikes}{a vector of put strikes attached to the put prices, in numeric format}
 
-\item{nb_log}{a number for the number of lognormal densities in the lognormal mixture to model the futures contracts, either 2 or 3, in numeric format}
+\item{nb_log}{a number for the number of component densities in the lognormal mixture to model the STIR futures' price, either 2 or 3, in numeric format}
 
-\item{r}{a number for the riskfree spot rate whose maturity is equal to the option's maturity, in numeric format}
+\item{r}{a number for the riskfree spot rate whose maturity is equal to the options' maturity, in numeric format}
 
 \item{day_count_conv}{a number for the day count convention, 1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360, in numeric format}
 
 \item{cot}{a number for the options' style, 1 for European options, 2 for American options and 3 for American options with futures-style margin, in numeric format}
 
-\item{fut_price}{a number for the futures contract price on calibration date, in numeric format}
+\item{fut_price}{a number for the STIR futures' price on calibration date, in numeric format}
 
-\item{fut_matu}{a date for the maturity date of the futures contract, in Date format}
+\item{fut_matu}{a date for the STIR futures' maturity date, in Date format}
 
 \item{option_matu}{a date for the maturity date of the options, in Date format}
 
 \item{start_date}{a date for the observation date, in Date format}
 
-\item{ref_rate}{a character for the name of the STIR for the plot, in character format (NA by default)}
+\item{ref_rate}{a character for the name of the STIR, in character format (NA by default)}
 
-\item{currency}{a character for the currency in which the futures contract and the options are traded for the plot, in character format (NA by default)}
+\item{currency}{a character for the currency in which the STIR futures contract and the options are traded, in character format (NA by default)}
 }
 \value{
-the mean and standard deviation of each component lognormal density and the weight on the first density (for a mixture of 2) or on the first 2 densities (for a mixture of 3) in numeric format,  a discretized domain of the futures price by increments of 0.001 units of the currency of the futures contract, in numeric format, the probability density for each value in the discretized domain in numeric format, the cumulative density for each value in the discretized domain in numeric format, the type of convergence in the optimization in numeric format (0 indicating successful convergence), the mean, standard deviation, skewness and kurtosis of the distribution of the futures price in numeric format, quantiles of order 0.1\%, 0.5\%, 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%, 99.5\% and 99.9\% of the distribution in numeric format, the mode of the distribution in numeric format, the options' prices predicted by the model in numeric format, a plot of the RND and a plot of the CDF of the futures price
+the mean and standard deviation of each component lognormal density and the weight on the first density (for a mixture of 2) or on the first 2 densities (for a mixture of 3) in numeric format,  a discretized domain of the futures price at option's maturity by increments of 0.001 units of the currency of the futures contract, in numeric format, the probability density for each value in the discretized domain in numeric format, the cumulative density for each value in the discretized domain in numeric format, the type of convergence in the optimization in numeric format (0 indicating successful convergence), the mean, standard deviation, skewness and kurtosis of the distribution of the futures price in numeric format, quantiles of order 0.1\%, 0.5\%, 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%, 99.5\% and 99.9\% of the distribution in numeric format, the mode of the distribution in numeric format, the options' prices predicted by the model in numeric format, a plot of the RND and a plot of the CDF of the futures price
 }
 \description{
 stir_future_price

@@ -23,7 +23,7 @@ stir_future_charac_bbg <- function(bbg_tickers){
 
   underlying <- underlying %>% filter(FUT_NOTL_BOND != "")
 
-  if(nrow(underlying) == 0){message("please enter a STIR future Bloomberg ticker")
+  if(nrow(underlying) == 0){message("please enter a STIR futures Bloomberg ticker")
   } else{
 
     flds <- c("LAST_TRADEABLE_DT", "CRNCY", "FUT_EXCH_NAME_LONG", "FUT_NOTL_BOND")

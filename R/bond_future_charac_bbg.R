@@ -23,7 +23,7 @@ bond_future_charac_bbg <- function(bbg_tickers){
 
   underlying <- underlying %>% filter(FUT_NOTL_BOND != "")
 
-  if(nrow(underlying) == 0){message("please enter a bond future Bloomberg ticker")
+  if(nrow(underlying) == 0){message("please enter a bond futures Bloomberg ticker")
   } else{
 
     flds <- c("LAST_TRADEABLE_DT", "CRNCY", "FUT_EXCH_NAME_LONG", "FUT_NOTL_BOND")
