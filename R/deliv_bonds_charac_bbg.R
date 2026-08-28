@@ -15,7 +15,6 @@
 #' deliv_bonds_charac_bbg("UBU6", as.Date("2026-05-19"))
 #' }
 #'
-
 deliv_bonds_charac_bbg <- function(bbg_ticker, date){
 
   blpConnect()
@@ -42,7 +41,7 @@ deliv_bonds_charac_bbg <- function(bbg_ticker, date){
       if(nrow(px) == 0){
         message("please enter a trading day")
       } else{
-        px <- px %>% dplyr::select(-date) %>% rename_with(~"ytm") %>%
+        px <- px %>% select(-date) %>% rename_with(~"ytm") %>%
           mutate_at("ytm", ~./100) %>% rownames_to_column("ISIN")
 
         corres <- data.frame(day_count_conv_prov = c(35, 20, 9, 10, 4, 3, 2, 1),
@@ -54,7 +53,7 @@ deliv_bonds_charac_bbg <- function(bbg_ticker, date){
           rownames_to_column("ISIN") %>% left_join(basket, by = "ISIN") %>% left_join(px, by = "ISIN") %>%
           mutate_at("ISIN", ~gsub(" Corp", "", .)) %>% arrange(matu) %>%
           left_join(corres, by = "day_count_conv_prov") %>%
-          dplyr::select(-day_count_conv_prov) %>%
+          select(-day_count_conv_prov) %>%
           mutate_at("cusip", ~substr(., 1, nchar(.) - 1))
 
         ctd <- bdh(bbg_ticker, "FUT_CTD_CUSIP", start.date = date, end.date = date) %>%
@@ -65,15 +64,15 @@ deliv_bonds_charac_bbg <- function(bbg_ticker, date){
         } else {
           if(!ctd$cusip%in%charac$cusip){
             ctd_isin <- bdp(bbg_ticker, "FUT_CTD_ISIN") %>% rename_all(~"ISIN")
-            ctd <- charac %>% filter(ISIN == ctd_isin$ISIN) %>% dplyr::select(-cusip)
-            charac <- charac %>% dplyr::select(-cusip) %>% na.omit()
+            ctd <- charac %>% filter(ISIN == ctd_isin$ISIN) %>% select(-cusip)
+            charac <- charac %>% select(-cusip) %>% na.omit()
           } else {
             ctd <- charac %>% filter(cusip == ctd$cusip)
-            charac <- charac %>% dplyr::select(-cusip) %>% na.omit()
-            ctd <- ctd %>% dplyr::select(-cusip)
+            charac <- charac %>% select(-cusip) %>% na.omit()
+            ctd <- ctd %>% select(-cusip)
           }
           net_basis_ctd <- bdh(bbg_ticker, "FUT_CTD_NET_BASIS", start.date = date, end.date = date) %>%
-            dplyr::select(-date) %>% rename_all(~"net_basis")
+            select(-date) %>% rename_all(~"net_basis")
 
           ctd <- data.frame(ctd, net_basis_ctd)
         }
@@ -83,3 +82,4 @@ deliv_bonds_charac_bbg <- function(bbg_ticker, date){
     }
   }
 }
+

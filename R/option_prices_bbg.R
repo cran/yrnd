@@ -15,7 +15,6 @@
 #' option_prices_bbg("ERM6", as.Date("2026-03-20"))
 #' }
 #'
-
 option_prices_bbg <- function(fut_bbg_ticker, date){
 
   blpConnect()
@@ -49,20 +48,20 @@ option_prices_bbg <- function(fut_bbg_ticker, date){
           opt_curr <- bdp(head(extract_prices$security, 1), "CRNCY") %>% unlist()
           opt_exchange <- bdp(head(extract_prices$security, 1), "FUT_EXCH_NAME_LONG") %>% unlist()
           fut_price <- bdh(paste0(fut_bbg_ticker, " Comdty"), "PX_LAST", start.date = date,
-                           end.date = date) %>% dplyr::select(PX_LAST) %>% unlist()
+                           end.date = date) %>% select(PX_LAST) %>% unlist()
           names(opt_matu) <- names(opt_style) <- names(opt_curr) <- names(opt_exchange) <- names(fut_price) <- c()
 
           suppressWarnings({
             extract_prices <- extract_prices %>% mutate_at("security", ~gsub(" Comdty", "", .)) %>%
               mutate(option = gsub('[0-9].+', '', gsub(fut_bbg_ticker, "", security))) %>%
               mutate(strike_price = gsub(paste0(fut_bbg_ticker, option, collapse = "|"), "", security)) %>%
-              mutate_at("option", ~gsub(" ", "", .)) %>% dplyr::select(-c(date, security)) %>%
+              mutate_at("option", ~gsub(" ", "", .)) %>% select(-c(date, security)) %>%
               filter(!is.na(PX_LAST)) %>% mutate_at(c("PX_LAST", "strike_price"), as.numeric) %>%
               arrange(option, strike_price) %>% unique
             call <- extract_prices %>% filter(option == "C") %>% rename(call_price = PX_LAST) %>%
-              dplyr::select(-option)
+              select(-option)
             put <- extract_prices %>% filter(option == "P") %>% rename(put_price = PX_LAST)  %>%
-              dplyr::select(-option)
+              select(-option)
             options_prices <- left_join(call, put, by = "strike_price") %>% relocate(strike_price) %>%
               arrange(strike_price)
           })

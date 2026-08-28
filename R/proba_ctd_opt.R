@@ -33,6 +33,7 @@
 #' @import zoo
 #' @import ggplot2
 #' @import tvm
+#' @import tibble
 #'
 #' @examples
 #' \donttest{
@@ -66,10 +67,9 @@
 #' 2)
 #' }
 #'
-
 proba_ctd_opt <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log, r, r_2, day_count_conv, cot,
-                      ctd_matu, fut_price, fut_matu, option_matu, start_date, bond_ISIN, bond_coupon,
-                      bond_cp_f, bond_matu, bond_nomi = 100, bond_conv_factor, bond_ytm, sett){
+                          ctd_matu, fut_price, fut_matu, option_matu, start_date, bond_ISIN, bond_coupon,
+                          bond_cp_f, bond_matu, bond_nomi = 100, bond_conv_factor, bond_ytm, sett){
 
   if(length(nb_log) == 1 & length(r) == 1 & length(day_count_conv) == 1 & length(cot) == 1 & length(ctd_matu) == 1 &
      length(fut_price) == 1 & length(fut_matu) == 1 & length(option_matu) == 1 & length(start_date) == 1 &
@@ -226,7 +226,7 @@ proba_ctd_opt <- function(call_prices, call_strikes, put_prices, put_strikes, nb
 
         ytm <- list()
         for (i in 1:nrow(deliv_bonds)){
-          ytm[[i]] <- tri(bond_fut$domain)}
+          ytm[[i]] <- tri(bond_fut$discretized_rnd$domain)}
 
         ytm <- do.call(cbind, ytm) %>% data.frame %>% rename_with(~c(deliv_bonds$ISIN))
 
@@ -246,10 +246,10 @@ proba_ctd_opt <- function(call_prices, call_strikes, put_prices, put_strikes, nb
           net_basis[[k]] <- list()
           for (i in which(terms$fut_matu < deliv_bonds$curr_cp_dt)){
             net_basis[[k]][[i]] <- dirty(ctd[[k]][, i])*exp(fwd_1*terms$res_term) -
-              (bond_fut$domain*deliv_bonds$conv_factor[i] + deliv_bonds$acc_matu[i]  )}
+              (bond_fut$discretized_rnd$domain*deliv_bonds$conv_factor[i] + deliv_bonds$acc_matu[i]  )}
           for (i in which(terms$fut_matu >= deliv_bonds$curr_cp_dt)){
             net_basis[[k]][[i]] <-  dirty(ctd[[k]][, i])*exp(fwd_1*terms$res_term) -
-              (bond_fut$domain*deliv_bonds$conv_factor[i] + deliv_bonds$acc_matu[i] +
+              (bond_fut$discretized_rnd$domain*deliv_bonds$conv_factor[i] + deliv_bonds$acc_matu[i] +
                  deliv_bonds$coupon[i]/deliv_bonds$cp_freq[i]*Nomi*exp(fwd_2[[i]]*deliv_bonds$res_term_2[i]) ) }
           net_basis[[k]] <- do.call(cbind, net_basis[[k]])
           ctd_conf_2[[k]] <- ctd_conf[[k]] <- apply(net_basis[[k]], 1, which.min)
@@ -271,7 +271,8 @@ proba_ctd_opt <- function(call_prices, call_strikes, put_prices, put_strikes, nb
 
         prob <- list()
         for (i in 1:length(ctd_pot)){
-          prob[[i]] <- sum(bond_fut$rnd[prb == ctd_pot[i]])*first(diff(bond_fut$domain))}
+          prob[[i]] <- sum(bond_fut$discretized_rnd$rnd[prb == ctd_pot[i]])*
+            first(diff(bond_fut$discretized_rnd$domain))}
 
         prob <- round(unlist(prob), 3)
 

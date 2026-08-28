@@ -23,6 +23,7 @@
 #' @import lubridate
 #' @import zoo
 #' @import ggplot2
+#' @import tibble
 #'
 #' @examples
 #' \donttest{
@@ -63,13 +64,17 @@
 stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log, r, day_count_conv,
                       cot, fut_price, fut_matu, option_matu, start_date, ref_rate = NA, currency = NA){
 
+  msg_1 <- paste0("A mixture of ", nb_log, " lognormal distributions is not consistent with this options's style")
+  msg_2 <- "impossible to retrieve a density"
+
   if(length(nb_log) == 1 & length(r) == 1 & length(day_count_conv) == 1 & length(cot) == 1 &
      length(fut_price) == 1 & length(fut_matu) == 1 & length(option_matu) == 1 & length(start_date) == 1 &
      length(ref_rate) == 1 & length(currency) == 1 & length(call_prices) > 1 & length(call_strikes) > 1 &
      length(put_prices) > 1 & length(put_strikes) > 1){
 
     contract_fut <- data.frame(fut_price, option_matu, start_date, fut_matu, ref_rate, currency) %>%
-      rename_with(~c("fut_price", "option_matu", "start_date", "fut_matu", "name", "currency"))
+      rename_with(~c("fut_price", "option_matu", "start_date", "fut_matu", "name", "currency")) %>%
+      mutate_at(c("option_matu", "fut_matu", "start_date"), as.Date)
 
     if(contract_fut$start_date < contract_fut$option_matu & contract_fut$option_matu <= contract_fut$fut_matu){
 
@@ -87,11 +92,21 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
                                                                                    ceiling_date(start_date, "months")))/30),
                                                 option_term = (stub_1 + stub_2 + plain_months*30)/360)}
 
+      esp <- function(x){exp(x[1] + (x[2]^2)/2 )}
+
+      esp_mix <- function(x){
+        if(cot %in%c(1, 3)){
+          ifelse(length(x) == 5, x[5]*esp(x[c(1, 3)]) + (1 - x[5])*esp(x[c(2, 4)]),
+                 x[7]*esp(x[c(1, 4)]) + x[8]*esp(x[c(2, 5)]) + (1 - sum(x[7:8]))*esp(x[c(3, 6)]))
+        } else{ ifelse(length(x) == 7, x[5]*esp(x[c(1, 3)]) + (1 - x[5])*esp(x[c(2, 4)]),
+                       x[7]*esp(x[c(1, 4)]) + x[8]*esp(x[c(2, 5)]) + (1 - sum(x[7:8]))*esp(x[c(3, 6)])) }
+      }
+
       call <- function(x, KC){
         d1_C <- (x[1] + x[2]^2 - log(KC))/x[2]
         d2_C <- d1_C - x[2]
-        if(cot %in%c(1, 2)){call <- exp(-r*T)*(exp(x[1] + (x[2]^2/2))*pnorm(d1_C) - KC*pnorm(d2_C))
-        } else(call <- exp(x[1] + (x[2]^2/2))*pnorm(d1_C) - KC*pnorm(d2_C))
+        if(cot %in%c(1, 2)){call <- exp(-r*T)*(esp(x)*pnorm(d1_C) - KC*pnorm(d2_C))
+        } else{ call <- esp(x)*pnorm(d1_C) - KC*pnorm(d2_C) }
       }
 
       call_mix <- function(x, KC){
@@ -102,20 +117,11 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
                        return(x[7]*call(x[c(1, 4)], KC) + x[8]*call(x[c(2, 5)], KC) + (1 - sum(x[7:8]))*call(x[c(3, 6)], KC))) }
       }
 
-      esp <- function(x){exp(x[1] + (x[2]^2/2))}
-
-      esp_mix <- function(x){
-        if(cot %in%c(1, 3)){
-          ifelse(length(x) == 5, x[5]*esp(x[c(1, 3)]) + (1 - x[5])*esp(x[c(2, 4)]),
-                 x[7]*esp(x[c(1, 4)]) + x[8]*esp(x[c(2, 5)]) + (1 - sum(x[7:8]))*esp(x[c(3, 6)]))
-        } else{ ifelse(length(x) == 7, x[5]*esp(x[c(1, 3)]) + (1 - x[5])*esp(x[c(2, 4)]),
-                       x[7]*esp(x[c(1, 4)]) + x[8]*esp(x[c(2, 5)]) + (1 - sum(x[7:8]))*esp(x[c(3, 6)])) }
-      }
       put <- function(x, KP){
         d1_C <- (x[1] + x[2]^2 - log(KP))/x[2]
         d2_C <- d1_C - x[2]
-        if(cot %in%c(1, 2)){put <- exp(-r*T)*( -exp(x[1] + (x[2]^2/2))*pnorm(-d1_C) + KP*pnorm(-d2_C))
-        } else(put <- -exp(x[1] + (x[2]^2/2))*pnorm(-d1_C) + KP*pnorm(-d2_C))
+        if(cot %in%c(1, 2)){put <- exp(-r*T)*( -esp(x)*pnorm(-d1_C) + KP*pnorm(-d2_C))
+        } else{ put <- -esp(x)*pnorm(-d1_C) + KP*pnorm(-d2_C) }
       }
 
       put_mix <- function(x, KP){
@@ -126,10 +132,10 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
                          return(x[7]*put(x[c(1, 4)], KP) + x[8]*put(x[c(2, 5)], KP) + (1 - sum(x[7:8]))*put(x[c(3, 6)], KP)))}
       }
 
-      if(nb_log == 2) {PR <- seq(0.01, 0.49, 0.01)
-      } else {PR <- seq(0.01, 1, 0.01)
+      if(nb_log == 2) {PR <- matrix(seq(0.01, 0.49, 0.01), ncol = 1)
+      } else {PR <- seq(0.01, 0.07, 0.03)
       PR <- expand.grid(c(rep(list(PR), 2)))
-      PR <- PR[rowSums(PR) < 1, ]}
+      PR <- PR[rowSums(PR) <= 1, ]}
 
       suppressWarnings({
 
@@ -158,12 +164,12 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
 
       objective <- function(x){
         if(cot %in% c(1, 3)){
-          ifelse( length(PR) !=2,
-                  MSE_mix( c(x[1:4], PR[i])),
+          ifelse( nb_log == 2,
+                  MSE_mix( c(x[1:4], PR[i, 1])),
                   MSE_mix( c(x[1:6], PR[i, 1], PR[i, 2] )))
-        } else{ ifelse( length(PR) !=2,
-                        MSE_mix( c(x[1:4], PR[i], x[6:7])),
-                        MSE_mix( c(x[1:6], PR[i, 1], PR[i, 2], x[9:10] ))) }
+        } else{ ifelse( nb_log == 2,
+                        MSE_mix( c(x[1:4], PR[i, 1], x[5:6])),
+                        MSE_mix( c(x[1:6], PR[i, 1], PR[i, 2], x[7:8] ))) }
       }
 
       C <- call_prices
@@ -175,21 +181,21 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
 
       m1 <- m2 <- m3 <- s1 <- s2 <- s3 <- SCE <- NA
 
-      if(nb_log == 2){PARA <- as.matrix(data.frame(m1, m2, s1, s2, pi1 = PR, w1 = 0.5, w2 = 0.5, SCE))
+      if(nb_log == 2){PARA <- as.matrix(data.frame(m1, m2, s1, s2, pi1 = PR[, 1], w1 = 0, w2 = 0, SCE))
       } else {PARA <- as.matrix(data.frame(m1, m2, m3, s1, s2, s3, pi1 = PR[, 1], pi2 = PR[, 2],
-                                           w1 = 0.5, w2 = 0.5, SCE))}
+                                           w1 = 0, w2 = 0, SCE))}
 
       start <- c(rep(c(log(FWD), 0.1), each = nb_log), rep(0.5, 2) )
 
       if(FWD != 1){
-        lower <- c(rep(c( (sign(1 - FWD)*0.5 + 1)*log(FWD), 1e-6), each = nb_log), rep(0, 2) )
-        upper <- c(rep(c( (sign(FWD - 1)*0.5 + 1)*log(FWD), 0.8), each = nb_log), rep(1, 2) )
+        lower <- c(rep(c( (sign(1 - FWD)*0.5 + 1)*log(FWD), 1e-6), each = nb_log), rep(1e-6, 2) )
+        upper <- c(rep(c( (sign(FWD - 1)*0.5 + 1)*log(FWD), 0.8), each = nb_log), rep(1 - 1e-6, 2) )
       } else {
-        lower <- c(rep(c( -1, 1e-6), each = nb_log), rep(0, 2) )
-        upper <- c(rep(c( 1, 0.8), each = nb_log), rep(1, 2) ) }
+        lower <- c(rep(c( -1, 1e-6), each = nb_log), rep(1e-6, 2) )
+        upper <- c(rep(c( 1, 0.8), each = nb_log), rep(1 - 1e-6, 2) ) }
 
       suppressWarnings({
-        for (i in 1:length(PR)){
+        for (i in 1:nrow(PR)){
           if(cot %in%c(1,3)){
             sol <- nlminb(start = start[1:(length(start) - 2)], objective = objective,
                           lower = lower[1:(length(lower) - 2)], upper = upper[1:(length(upper) - 2)],
@@ -199,10 +205,8 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
             sol <- nlminb(start = start, objective = objective, lower = lower, upper = upper, control = list(iter.max = 500))
             PARA[i, grep( paste( c("m", "s", "w"), collapse = "|"), colnames(PARA))] <- sol$par[1:(2*nb_log + 2)] }
           PARA[i, "SCE"] <- sol$objective
-
         }
       })
-
 
       if(length(which(PARA[, ncol(PARA)]!="Inf")) != 0){
         PARA <- PARA
@@ -232,19 +236,21 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
       param[param == 0] <- 1e-6
 
       L <- U <- rep(0, length(param))
+
       L[sign(param) == -1] <- 1.5*param[sign(param) == -1]
-      L[sign(param) == 1] <- 1e-2*param[sign(param) == 1]
-      L[(length(L) - 1):length(L)] <- 0
+      L[sign(param) == 1] <- 0.5*param[sign(param) == 1]
+      U[sign(param) == -1] <- 0.5*param[sign(param) == -1]
+      U[sign(param) == 1] <- 1.5*param[sign(param) == 1]
+
       if(cot%in%c(1, 3)){
         L <- L[1: (length(L)-2)]
-      } else{L <- L }
-
-      U[sign(param) == -1] <- 1e-2*param[sign(param) == -1]
-      U[sign(param) == 1] <- 1.5*param[sign(param) == 1]
-      U[(length(U) - 1):length(U)] <- 1
-      if(cot%in%c(1, 3)){
         U <- U[1: (length(U)-2)]
-      } else{U <- U }
+      } else{ U[(length(U) - 1):length(U)] <- pmin(U[(length(U) - 1):length(U)], 1) }
+
+      U_prov <- sum(U[c(7:8)])
+      if( nb_log == 3 & U_prov >=1 ){
+        U[7] <- U[7]/U_prov + 1e-8
+        U[8] <- U[8]/U_prov + 1e-8}
 
       CI <- c(L, -U)
       UI <- rbind(diag(length(L)), -diag(length(L)))
@@ -256,7 +262,8 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
       param <- matrix(param)
 
       suppressWarnings({
-        solu <- constrOptim(param, MSE_mix, NULL, ui = UI, ci = CI, mu = 1e-05, method = "Nelder-Mead")
+        solu <- constrOptim(param, MSE_mix, NULL, ui = UI, ci = CI, control = list(maxit = 5000),
+                            mu = 1e-05, method = "Nelder-Mead")
       })
 
       if(cot%in%c(1,3) ){ params <- solu$par
@@ -382,14 +389,16 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
                                     contract_fut$start_date),
                      subtitle = paste0("Risk Neutral Cumulative Probability for a mixture of ", nb_log, " lognormals"))
 
-              stir_rate <- list(df_y$price, df_y$density,  cdf_y$cdf, solu$convergence, moments_y, qt, mode_y, pdf_y, ncdf_y)
-              names(stir_rate) <- c("domain", "rnd_r", "cdf_r", "CV", "moments", "quantiles", "mode", "rnd_r_plot", "cdf_r_plot")
+              stir_rate <- list(discretized_rnd = tibble(domain = df_y$price, rnd = df_y$density),
+                                discretized_cdf = tibble(domain = cdf_y$price, cdf = cdf_y$cdf),
+                                CV = solu$convergence, moments = moments_y, mode = mode_y, quantiles = qt,
+                                rnd_r_plot = pdf_y, cdf_r_plot = ncdf_y)
               return(stir_rate)
 
-            } else {message(paste0("A mixture of ", nb_log, " lognormal distributions is not consistent with this options's style"))}
-          } else {message(paste0("A mixture of ", nb_log, " lognormal distributions is not consistent with this options's style"))}
-        } else {message("impossible to retrieve a density")}
-      } else {message("impossible to retrieve a density")}
+            } else {message(msg_1)}
+          } else {message(msg_1)}
+        } else {message(msg_2)}
+      } else {message(msg_2)}
     } else {message("input dates are not consistent")}
   } else {message("inputs do not have the required length")}
 }

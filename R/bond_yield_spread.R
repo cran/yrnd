@@ -50,6 +50,7 @@
 #' @import tvm
 #' @import zoo
 #' @import ggplot2
+#' @import tibble
 #'
 #' @examples
 #' \donttest{
@@ -547,5 +548,5 @@ bond_yield_spread <- function(call_prices_1, call_strikes_1, put_prices_1, put_s
 
       } else {message("input dates are not consistent")}
     } else {message("inputs do not have the required length")}
-  } else{message("impossible to retrieve densities for both ctrys")}
+  } else{message("impossible to retrieve densities for both countries")}
 }

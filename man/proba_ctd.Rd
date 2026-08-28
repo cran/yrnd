@@ -29,11 +29,11 @@ proba_ctd(
 )
 }
 \arguments{
-\item{call_prices}{a vector of call prices, in numeric format}
+\item{call_prices}{a vector of call prices on a bond futures, in numeric format}
 
 \item{call_strikes}{a vector of call strikes attached to the call prices, in numeric format}
 
-\item{put_prices}{a vector of put prices, in numeric format}
+\item{put_prices}{a vector of put prices on a bond futures, in numeric format}
 
 \item{put_strikes}{a vector of put strikes attached to the put prices, in numeric format}
 
@@ -47,7 +47,7 @@ proba_ctd(
 
 \item{ctd_matu}{a date for the maturity date of the current Cheapest-to-Deliver Bond in the basket of deliverable bonds of the futures contract, in Date format}
 
-\item{fut_price}{a number for the futures contract price on calibration date, in numeric format}
+\item{fut_price}{a number for the bond futures' price on calibration date, in numeric format}
 
 \item{fut_matu}{a date for the maturity date of the futures contract, in Date format}
 

@@ -16,13 +16,12 @@ library(yrnd)
 library(yrnd)
 ```
 
-
 ## yrnd
 
-The package '"yrnd"' estimates a parametric form of the Risk Neutral Density (RND) of the price of fixed-income futures such as Short Term Interest Rates futures and government bond futures, using options written on those futures. The RND is estimated at options' maturity. The package also provides with the distribution of STIR rates futures and government bond yields themselves at options' maturity, using the RND of respectively the futures price of the STIR futures and the bond futures. It provides with some statistics of the distribution as well as a density and a cumulative density plot. Leveraging on the RND of bond futures, it provides with the probability attached to each bond in the delivery basket of a government bond futures contract to be the cheapest at maturity of the futures. It also provides with the non parametric RND of the bond yield spread between two issuers or two maturities, using RNDs on two bond futures with the same maturity date and a Gaussian copula.
+The package '"yrnd"' estimates a parametric form of the Risk Neutral Density (RND) of the price of fixed-income futures such as Short Term Interest Rates futures and government bond futures, using options written on those futures. The RND is estimated at options' maturity for any type of option's style. The futures price is modeled either as a mixture of two or three lognormal laws. It provides with the options prices predicted with the fitted parameters, some statistics of the distribution as well as a density and a cumulative density plot. Leveraging on this, the package provides with several functions. First, it provides with the distribution of the STIR rate and the government bond yield themselves at options' maturity, using the RND of respectively the futures price of the STIR futures and the bond futures. Then, using the RND of the bond futures price, it provides with the probability attached to each bond in the delivery basket of a government bond futures contract to be the cheapest at maturity of the futures and at maturity of the options, using the forward net basis. Then, the package extracts from the RND of the bond futures price two RNDs simultaneously: for each bond in the delivery basket of the futures contract, it provides with the RND of its forward yield and the RND of its forward repo rate. At last, it also provides with the non parametric RND of the bond yield spread between two issuers or two maturities, using RNDs on two bond futures with the same maturity date and a Gaussian copula.
 
 
-## stir_future_price provides with the risk neutral density of the STIR futures price, using options on the STIR futures
+## stir_future_price provides with the risk neutral density at options' maturity of the STIR futures price, using options on the STIR futures
 
 ```{r}
 stir_future_price( c(1.44500, 1.32000, 1.19750, 1.07500, 0.95750,
@@ -59,7 +58,7 @@ as.Date("2023-12-18"),
 "USD")
 ```
 
-## stir_rate provides with the risk neutral density of the STIR rate implicit in the STIR futures price, using options on the STIR futures
+## stir_rate provides with the risk neutral density at options' maturity of the STIR rate implicit in the STIR futures price, using options on the STIR futures
 
 ```{r}
 stir_rate( c(1.44500, 1.32000, 1.19750, 1.07500, 0.95750,
@@ -97,7 +96,7 @@ as.Date("2023-12-18"),
 ```
 
 
-## bond_future_price provides with the risk neutral density of the government bond futures price, using options on the government bond futures
+## bond_future_price provides with the risk neutral density at options' maturity of the government bond futures price, using options on the government bond futures
 
 ```{r}
 bond_future_price(c(10.39,9.92,9.46,9.00,8.55,8.10,7.66,7.23,
@@ -123,7 +122,7 @@ as.Date("2024-06-14"),
 "EUR")
 ```
 
-## ctd_bond_yield provides with the risk neutral density of the yield to maturity of the Cheapest-to-Deliver Bond in a futures contract, using options on the government bond futures
+## ctd_bond_yield provides with the risk neutral density at options' maturity of the yield to maturity of the Cheapest-to-Deliver Bond in a futures contract, using options on the government bond futures. The current CtD is assumed to be the CtD at futures' maturity. This is achieved by considering a "term cash and carry relationship" between the Cheapest-to-Deliver Bond and the futures contract, holding constant the CtD repo rate at options' maturity.
 
 ```{r}
 ctd_bond_yield(c(10.39,9.92,9.46,9.00,8.55,8.10,7.66,7.23,
@@ -156,7 +155,7 @@ as.Date("2024-06-14"),
 ```
 
 
-## proba_ctd provides, for each bond in the delivery basket of a government bond futures contact, its probability to be the cheapest to deliver bond at futures' maturity, based on a ranking of the net basis of each bond in the delivery basket at futures' maturity
+## proba_ctd provides, for each bond in the delivery basket of a government bond futures contact, its probability to be the cheapest to deliver bond at futures' maturity, based on a ranking of the net basis of each bond in the delivery basket at futures' maturity. Here it is assumed that the RND of the bond futures price at futures maturity is the same as its RND at options' maturity.
 
 ```{r}
 proba_ctd( c(24.10, 23.10, 22.12, 21.12, 20.12, 19.14, 18.14, 17.16, 16.18, 15.20,
@@ -281,4 +280,61 @@ c(0.03567, 0.03587, 0.03620, 0.03614, 0.03665, 0.03712),
 0.4,
 "Germany",
 "Italy")
+```
+
+
+## bond_fut_irr_ytm fits to options on a bond futures the RND of the bond futures price with a mixture of two lognormal laws. Then it extracts from this RND, for the current Cheapest-to-Deliver bond in the delivery basket of the futures contract, the RND of its forward yield and the RND of its forward repo rate which are again decribed by a mixture of two lognormal laws each. The current CtD is assumed to be the CtD at futures' maturity. This is achieved again by considering a "term cash and carry relationship" between the current Cheapest-to-Deliver bond and the futures contract, allowing here the repo rate of the bond at options' maturity to have a distribution. The RND of the STIR futures contract of the same currency and approximate same maturity is used to fix the bounds of the volatility of the forward repo rate density.
+
+```{r}
+bond_fut_irr_ytm(c(12.64, 12.14, 11.65, 11.15, 10.65, 10.15, 9.65,
+9.16, 8.66, 8.16, 7.67,  7.17, 6.68, 6.19, 5.70, 5.21, 4.73, 4.25,
+3.78, 3.32, 2.87, 2.45, 2.05, 1.67, 1.33, 1.03, 0.77, 0.57, 0.41,
+0.29, 0.21, 0.15, 0.10, 0.07, 0.06, 0.04, 0.04, 0.03, 0.02, 0.02,
+0.02, 0.02, 0.01, 0.01, 0.01, 0.01, 0.01),
+c(seq(114, 136.5, 0.5), 137.5),
+c(0.01, 0.01, 0.02, 0.02, 0.02, 0.02, 0.02, 0.03, 0.03, 0.03, 0.04,
+0.04, 0.05, 0.06, 0.07, 0.08, 0.10, 0.12, 0.15, 0.19, 0.24, 0.32,
+0.42, 0.54, 0.70, 0.90, 1.14, 1.44, 1.78, 2.16, 2.58, 3.02, 3.47,
+3.94, 4.43, 4.91, 5.41, 5.90, 6.39, 6.89, 7.39, 7.89, 8.38, 8.88,
+9.38, 9.88, 10.88),
+c(seq(114, 136.5, 0.5), 137.5),
+c(1.704999924, 1.579999924, 1.454999924, 1.329999924, 1.204999924,
+1.079999924, 0.954999983, 0.892499983, 0.829999983, 0.767499983,
+0.704999983, 0.642499983, 0.582499981, 0.519999981, 0.457499981,
+0.397499979, 0.334999979, 0.275000006, 0.217500001, 0.162499994,
+0.112499997, 0.072499998, 0.039999999, 0.02, 0.0075, 0.0025, 0.0025,
+0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+c(seq(95.75, 96.5, 0.125), seq(96.5625, 98.75, 0.0625),
+seq(98.875, 99.5, 0.125)),
+c(0, 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0.0025,  0.0025,
+0.0025,  0.005, 0.005,  0.0075,  0.012499999,  0.02, 0.029999999,
+0.055, 0.085000001, 0.127499998, 0.177499995, 0.234999999,
+0.297499985, 0.357499987, 0.419999987, 0.482499987, 0.544999957,
+0.607499957, 0.669999957, 0.732499957, 0.794999957, 0.857499957,
+0.919999957, 0.982499957, 1.044999957, 1.107499957, 1.169999957,
+1.232499957, 1.294999957, 1.419999957, 1.544999957, 1.669999957,
+1.794999957, 1.919999957, 2.044999838),
+c(seq(95.75, 96.5, 0.125), seq(96.5625, 98.75, 0.0625),
+seq(98.875, 99.5, 0.125)),
+0.0224,
+0.02232,
+1,
+3,
+126.66,
+0.026,
+1,
+0.770088,
+2,
+bond_N = 100,
+as.Date("2035-08-15"),
+as.Date("2026-09-08"),
+as.Date("2026-08-21"),
+3,
+97.45,
+as.Date("2026-09-14"),
+as.Date("2026-08-14"),
+as.Date("2026-06-17"),
+ref_rate = "3-mth Euribor",
+country = "Germany",
+currency = "EUR")
 ```
