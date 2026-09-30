@@ -2,7 +2,7 @@
 #'
 #' @param call_prices a vector of call prices on a STIR futures, in numeric format
 #' @param call_strikes a vector of call strikes attached to the call prices, in numeric format
-#' @param put_prices a vector of put prices on a STIR futures, in numeric format
+#' @param put_prices a vector of put prices on the same STIR futures, in numeric format
 #' @param put_strikes a vector of put strikes attached to the put prices, in numeric format
 #' @param nb_log a number for the number of component densities in the lognormal mixture to model the futures' price, either 2 or 3, in numeric format
 #' @param r a number for the riskfree spot rate whose maturity is equal to the options' maturity, in numeric format
@@ -320,8 +320,8 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
 
           NCDF <- CDF(params, PX_2)
 
-          if(DNR_2[1] < DNR_2[2] &
-             DNR_2[length(DNR_2) - 1] > DNR_2[length(DNR_2)] &
+          if(DNR_2[1] <= DNR_2[2] &
+             DNR_2[length(DNR_2) - 1] >= DNR_2[length(DNR_2)] &
              min(DNR_2)%in%DNR_2[c(1, length(DNR_2))]){
 
             PX_3 <- rev(100 - PX_2)
@@ -402,3 +402,4 @@ stir_rate <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
     } else {message("input dates are not consistent")}
   } else {message("inputs do not have the required length")}
 }
+

@@ -2,7 +2,7 @@
 #'
 #' @param call_prices a vector of call prices on a bond futures, in numeric format
 #' @param call_strikes a vector of call strikes attached to the call prices, in numeric format
-#' @param put_prices a vector of put prices on a bond futures, in numeric format
+#' @param put_prices a vector of put prices on the same bond futures, in numeric format
 #' @param put_strikes a vector of put strikes attached to the put prices, in numeric format
 #' @param nb_log a number for the number of lognormal densities in the lognormal mixture to model the futures contracts, either 2 or 3, in numeric format
 #' @param r a number for the riskfree spot rate whose maturity is equal to the option's maturity, in numeric format
@@ -19,10 +19,10 @@
 #' @param bond_matu a vector of the corresponding maturity dates for the bonds in the basket of deliverable bonds, in Date format
 #' @param bond_nomi a single number for the nominal of the bonds (100 by default) in numeric format
 #' @param bond_conv_factor a vector of the corresponding conversion factors for the bonds in the delivery basket, in numeric format
-#' @param bond_ytm a vector of the corresponding yield to maturities at observation date for the bonds in the delivery basket, in numeric format
+#' @param bond_ytm a vector of the corresponding yields to maturity at observation date for the bonds in the delivery basket, in numeric format
 #' @param sett a number for the number of days between the ex-coupon date and the coupon payment date of the current Cheapest-to-Deliver Bond, in numeric format
 #'
-#' @returns for the bonds in the delivery basket, their ISIN in character format and their probability of being the CtD bond at futures' maturity in numeric format
+#' @returns for the bonds in the delivery basket, their ISIN in character format and their probability of being the CtD bond at futures' maturity based on their net basis at futures' maturity, in numeric format
 #' @export
 #'
 #' @importFrom stats approx constrOptim density dlnorm nlminb plnorm pnorm
@@ -65,7 +65,6 @@
 #' 2)
 #' }
 #'
-
 proba_ctd <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log, r, day_count_conv, cot,
                       ctd_matu, fut_price, fut_matu, option_matu, start_date, bond_ISIN, bond_coupon,
                       bond_cp_f, bond_matu, bond_nomi = 100, bond_conv_factor, bond_ytm, sett){
@@ -99,20 +98,20 @@ proba_ctd <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
       if(day_count_conv == 1){
         deliv_bonds <- deliv_bonds %>% mutate(res_term = as.numeric(option_matu - prev_cp_dt - sett)/
                                                 as.numeric(ceiling_date(option_matu, "year") - floor_date(option_matu, "year") ),
-                                              acc_matu = Nomi*coupon/cp_freq*res_term )
+                                              acc_matu = Nomi*coupon*res_term )
       } else if(day_count_conv == 2) {
         deliv_bonds <- deliv_bonds %>% mutate(res_term = as.numeric(option_matu - prev_cp_dt - sett)/360,
-                                              acc_matu = Nomi*coupon/cp_freq*res_term)
+                                              acc_matu = Nomi*coupon*res_term)
       } else if(day_count_conv == 3){
         deliv_bonds <- deliv_bonds %>% mutate(res_term = as.numeric(option_matu - prev_cp_dt - sett)/365,
-                                              acc_matu = Nomi*coupon/cp_freq*res_term)
+                                              acc_matu = Nomi*coupon*res_term)
       } else{
         deliv_bonds <- deliv_bonds %>% mutate(stub_1 = max(0, 30 - as.numeric(format(prev_cp_dt + sett, "%d"))),
                                               stub_2 = min(30, as.numeric(format(option_matu, "%d"))),
                                               plain_months = round(as.numeric(floor_date(option_matu, "months") -
                                                                                 ceiling_date(prev_cp_dt + sett, "months") )/30),
                                               res_term = (stub_1 + stub_2 + max(0, plain_months)*30)/360,
-                                              acc_matu = Nomi*coupon/cp_freq*res_term)}
+                                              acc_matu = Nomi*coupon*res_term)}
 
       true_cp_dt <- stub <- cp_dt_2 <- list()
 

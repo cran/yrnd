@@ -126,7 +126,7 @@ bond_yield_spread(
 \item{ctry_2}{a character for the nationality of the issuer of the bond in the second bond futures, in character format (NA by default)}
 }
 \value{
-10,000 realizations of the bond yield spread between two different issuers or two issues of the same issuer with different maturities, using options on two bond futures with the same maturity, and a density plot of the spread, in bps
+based on the user's correlation coefficient, 10,000 realizations of the bond yield spread between two different issuers or two bonds of the same issuer with different maturities, using options of identical maturity on two bond futures of identical maturity, and a density plot of the spread, in bps
 }
 \description{
 bond_yield_spread

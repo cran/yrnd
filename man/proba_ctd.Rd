@@ -33,7 +33,7 @@ proba_ctd(
 
 \item{call_strikes}{a vector of call strikes attached to the call prices, in numeric format}
 
-\item{put_prices}{a vector of put prices on a bond futures, in numeric format}
+\item{put_prices}{a vector of put prices on the same bond futures, in numeric format}
 
 \item{put_strikes}{a vector of put strikes attached to the put prices, in numeric format}
 
@@ -67,12 +67,12 @@ proba_ctd(
 
 \item{bond_conv_factor}{a vector of the corresponding conversion factors for the bonds in the delivery basket, in numeric format}
 
-\item{bond_ytm}{a vector of the corresponding yield to maturities at observation date for the bonds in the delivery basket, in numeric format}
+\item{bond_ytm}{a vector of the corresponding yields to maturity at observation date for the bonds in the delivery basket, in numeric format}
 
 \item{sett}{a number for the number of days between the ex-coupon date and the coupon payment date of the current Cheapest-to-Deliver Bond, in numeric format}
 }
 \value{
-for the bonds in the delivery basket, their ISIN in character format and their probability of being the CtD bond at futures' maturity in numeric format
+for the bonds in the delivery basket, their ISIN in character format and their probability of being the CtD bond at futures' maturity based on their net basis at futures' maturity, in numeric format
 }
 \description{
 proba_ctd

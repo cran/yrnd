@@ -40,9 +40,9 @@
 #' @param ctry_1 a character for the nationality of the issuer of the bond in the first bond futures, in character format (NA by default)
 #' @param ctry_2 a character for the nationality of the issuer of the bond in the second bond futures, in character format (NA by default)
 #'
-#' @returns 10,000 realizations of the bond yield spread between two different issuers or two issues of the same issuer with different maturities, using options on two bond futures with the same maturity, and a density plot of the spread, in bps
+#' @returns based on the user's correlation coefficient, 10,000 realizations of the bond yield spread between two different issuers or two bonds of the same issuer with different maturities, using options of identical maturity on two bond futures of identical maturity, and a density plot of the spread, in bps
 #' @export
-#' @importFrom stats approx constrOptim density dlnorm nlminb plnorm pnorm qlnorm sd
+#' @importFrom stats approx constrOptim density dlnorm plnorm pnorm qlnorm
 #' @importFrom utils head tail
 #' @importFrom MASS mvrnorm
 #' @import dplyr
@@ -172,6 +172,7 @@ bond_yield_spread <- function(call_prices_1, call_strikes_1, put_prices_1, put_s
             simR
           }
 
+          set.seed(123)
 
           joint <- simulate_correlated_returns(10000, params, corr_matrix)
           joint <- 1 + joint
@@ -548,5 +549,5 @@ bond_yield_spread <- function(call_prices_1, call_strikes_1, put_prices_1, put_s
 
       } else {message("input dates are not consistent")}
     } else {message("inputs do not have the required length")}
-  } else{message("impossible to retrieve densities for both countries")}
+  } else{message("impossible to retrieve densities for both ctrys")}
 }

@@ -13,6 +13,7 @@
 #' bond_future_charac_bbg(c("TYU24", "CNM6", "KAAH6", "IKM6", "OATU6"))
 #' }
 #'
+
 bond_future_charac_bbg <- function(bbg_tickers){
 
   blpConnect()

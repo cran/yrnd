@@ -12,7 +12,7 @@ deliv_bonds_charac_bbg(bbg_ticker, date)
 \item{date}{a date for the recovery of the characteristics of the deliverable bonds in the futures contract, in Date format}
 }
 \value{
-For the bonds in the delivery basket, their ISIN code in character format, their coupon rate and frequency of coupon payment in numeric format (1 for annual and 2 for semi-annual), their maturity date in Date format, their conversion factor, yield to maturity and day count convention in numeric format (1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360). Provided physical delivery of the contract, the same information is also displayed for the current Cheapest-to-Deliver Bond in a second table, with in addition its net basis in currency units of the futures contract, as calculated by Bloomberg, in numeric format
+For the bonds in the delivery basket, their ISIN code in character format, their coupon rate and frequency of coupon payment in numeric format (1 for annual and 2 for semi-annual), their maturity date in Date format, their conversion factor, yield to maturity and day count convention in numeric format (1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360). Provided physical delivery of the contract, the same information is also displayed for the current Cheapest-to-Deliver Bond in a second table, with in addition its net basis in currency units of the futures contract and its implied repo rate in percentage, as calculated by Bloomberg, in numeric format
 }
 \description{
 deliv_bonds_charac_bbg

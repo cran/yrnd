@@ -2,7 +2,7 @@
 #'
 #' @param call_prices a vector of call prices on a STIR futures, in numeric format
 #' @param call_strikes a vector of call strikes attached to the call prices, in numeric format
-#' @param put_prices a vector of put prices on a STIR futures, in numeric format
+#' @param put_prices a vector of put prices on the same STIR futures, in numeric format
 #' @param put_strikes a vector of put strikes attached to the put prices, in numeric format
 #' @param nb_log a number for the number of component densities in the lognormal mixture to model the STIR futures' price, either 2 or 3, in numeric format
 #' @param r a number for the riskfree spot rate whose maturity is equal to the options' maturity, in numeric format
@@ -61,6 +61,7 @@
 #' "USD")
 #' }
 #'
+
 stir_future_price <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log, r, day_count_conv,
                               cot, fut_price, fut_matu, option_matu, start_date, ref_rate = NA, currency = NA){
 
@@ -322,8 +323,8 @@ stir_future_price <- function(call_prices, call_strikes, put_prices, put_strikes
           DNR_2 <- PDF(params, PX_2)
           NCDF <- CDF(params, PX_2)
 
-          if(DNR_2[1] < DNR_2[2] &
-             DNR_2[length(DNR_2) - 1] > DNR_2[length(DNR_2)] &
+          if(DNR_2[1] <= DNR_2[2] &
+             DNR_2[length(DNR_2) - 1] >= DNR_2[length(DNR_2)] &
              min(DNR_2)%in%DNR_2[c(1, length(DNR_2))]){
 
             E <- sum(rollmean(PX_2*DNR_2, 2)*diff(PX_2))

@@ -3,7 +3,7 @@
 #' @param bbg_ticker a Bloomberg ticker of a bond futures contract, in character format
 #' @param date a date for the recovery of the characteristics of the deliverable bonds in the futures contract, in Date format
 #'
-#' @returns For the bonds in the delivery basket, their ISIN code in character format, their coupon rate and frequency of coupon payment in numeric format (1 for annual and 2 for semi-annual), their maturity date in Date format, their conversion factor, yield to maturity and day count convention in numeric format (1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360). Provided physical delivery of the contract, the same information is also displayed for the current Cheapest-to-Deliver Bond in a second table, with in addition its net basis in currency units of the futures contract, as calculated by Bloomberg, in numeric format
+#' @returns For the bonds in the delivery basket, their ISIN code in character format, their coupon rate and frequency of coupon payment in numeric format (1 for annual and 2 for semi-annual), their maturity date in Date format, their conversion factor, yield to maturity and day count convention in numeric format (1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360). Provided physical delivery of the contract, the same information is also displayed for the current Cheapest-to-Deliver Bond in a second table, with in addition its net basis in currency units of the futures contract and its implied repo rate in percentage, as calculated by Bloomberg, in numeric format
 #' @export
 #' @import dplyr
 #' @import Rblpapi
@@ -56,8 +56,12 @@ deliv_bonds_charac_bbg <- function(bbg_ticker, date){
           select(-day_count_conv_prov) %>%
           mutate_at("cusip", ~substr(., 1, nchar(.) - 1))
 
-        ctd <- bdh(bbg_ticker, "FUT_CTD_CUSIP", start.date = date, end.date = date) %>%
+        ctd <- bdh(bbg_ticker, "FUT_CTD_CUSIP", start.date = date - 5, end.date = date) %>%
           rename_at(2, ~"cusip")
+
+        if(nrow(ctd) > 1){
+          ctd <- ctd %>% slice(n())
+        } else{ ctd <- ctd}
 
         if (nrow(ctd) == 0){ message("the contract is not physically delivered - no real CtD")
           return(charac)
@@ -71,8 +75,9 @@ deliv_bonds_charac_bbg <- function(bbg_ticker, date){
             charac <- charac %>% select(-cusip) %>% na.omit()
             ctd <- ctd %>% select(-cusip)
           }
-          net_basis_ctd <- bdh(bbg_ticker, "FUT_CTD_NET_BASIS", start.date = date, end.date = date) %>%
-            select(-date) %>% rename_all(~"net_basis")
+          net_basis_ctd <- bdh(bbg_ticker, c("FUT_CTD_NET_BASIS", "FUT_IMPLIED_REPO_RT"),
+                               start.date = date - 5, end.date = date) %>%
+            select(-date) %>% rename_all(~c("net_basis", "implied_repo_rate")) %>% last()
 
           ctd <- data.frame(ctd, net_basis_ctd)
         }
@@ -82,4 +87,3 @@ deliv_bonds_charac_bbg <- function(bbg_ticker, date){
     }
   }
 }
-

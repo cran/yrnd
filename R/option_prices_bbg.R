@@ -31,6 +31,12 @@ option_prices_bbg <- function(fut_bbg_ticker, date){
                                        language = "english", maxResults = 1000, verbose = F) %>%
         filter(grepl("OP", description)) %>% mutate_at("security", ~gsub("<cmdty>", " Comdty", .))
 
+      if(nrow(option_tickers) == 0){
+        option_tickers <- lookupSecurity(paste0(fut_bbg_ticker, " Comdty"), yellowkey = "cmdt",
+                                         language = "english", maxResults = 1000, verbose = F) %>%
+          filter(grepl("O ", description)) %>% mutate_at("security", ~gsub("<cmdty>", " Comdty", .))
+      }
+
       if(nrow(option_tickers) == 0){message("no option listed on this asset")
       } else{
 

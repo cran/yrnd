@@ -26,7 +26,7 @@ stir_rate(
 
 \item{call_strikes}{a vector of call strikes attached to the call prices, in numeric format}
 
-\item{put_prices}{a vector of put prices on a STIR futures, in numeric format}
+\item{put_prices}{a vector of put prices on the same STIR futures, in numeric format}
 
 \item{put_strikes}{a vector of put strikes attached to the put prices, in numeric format}
 

@@ -15,6 +15,7 @@ bond_fut_irr_ytm(
   stir_put_strikes,
   r,
   r_2,
+  r_3,
   day_count_conv,
   cot_bond,
   bond_fut_price,
@@ -31,9 +32,9 @@ bond_fut_irr_ytm(
   stir_fut_matu,
   stir_option_matu,
   start_date,
-  ref_rate = NA,
   country = NA,
-  currency = NA
+  currency = NA,
+  term_stir
 )
 }
 \arguments{
@@ -41,21 +42,23 @@ bond_fut_irr_ytm(
 
 \item{bond_call_strikes}{a vector of call strikes attached to the call prices, in numeric format}
 
-\item{bond_put_prices}{a vector of put prices on a bond futures, in numeric format}
+\item{bond_put_prices}{a vector of put prices on the same bond futures, in numeric format}
 
 \item{bond_put_strikes}{a vector of put strikes attached to the put prices, in numeric format}
 
-\item{stir_call_prices}{a vector of call prices on a STIR futures, in numeric format}
+\item{stir_call_prices}{a vector of call prices on a STIR futures whose maturity date is near the maturity date of the bond futures (maturity distance below 30 days), in numeric format}
 
 \item{stir_call_strikes}{a vector of call strikes attached to the call prices, in numeric format}
 
-\item{stir_put_prices}{a vector of put prices on a STIR futures, in numeric format}
+\item{stir_put_prices}{a vector of put prices on the same STIR futures, in numeric format}
 
 \item{stir_put_strikes}{a vector of put strikes attached to the put prices, in numeric format}
 
 \item{r}{a number for the riskfree spot rate whose maturity is equal to the options' maturity, in numeric format}
 
-\item{r_2}{a number for the spot repo funding rate of the underlying bond, with maturity equal to the futures' maturity, in numeric format}
+\item{r_2}{a number for the spot repo funding rate of the underlying bond, with maturity equal to the options' maturity, in numeric format}
+
+\item{r_3}{a number for the spot repo funding rate of the underlying bond, with maturity equal to the futures' maturity, in numeric format}
 
 \item{day_count_conv}{a number for the day count convention, 1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360, in numeric format}
 
@@ -89,14 +92,14 @@ bond_fut_irr_ytm(
 
 \item{start_date}{a date for the observation date, in Date format}
 
-\item{ref_rate}{a character for the name of the STIR, in character format (NA by default)}
-
 \item{country}{a character for the country of the issuer of the bond underlying the futures contract, in character format (NA by default)}
 
 \item{currency}{a character for the currency in which the futures contract and the options are traded, in character format (NA by default)}
+
+\item{term_stir}{a number for the term to maturity, in months, of the STIR at observation date, in numeric format}
 }
 \value{
-provided they can be extracted, the discretized domains and RNDs of the bond forward repo rate and of the bond forward yield to maturity, the mean, standard deviation, skewness, kurtosis and mode of the bond forward repo rate and of the bond forward yield to maturity, in numeric format, the plots of the RND and the CDF of the bond forward repo rate and of the bond forward yield to maturity, the parameters of the RND of the bond forward price and of the bond forward repo price, in numeric format, the convergence with 0 indicating successful convergence, in numeric format
+the parameters (means, standard deviations and weight in the first component lognormal law) of respectively the RND of the bond price and the RND of the bond repo asset price at options' maturity, the mean, standard deviation, skewness, kurtosis, mode, quantiles of order 0.1\%, 0.5\%, 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%, 99.5\% and 99.9\% of respectively the bond yield and the bond repo rate distributions in numeric format, the discretized domain and associated RND values of respectively the bond yield to maturity and of the bond repo rate at options' maturity, in numeric format, the RND and CDF plots of respectively the bond yield to maturity and the bond repo rate at options' maturity,  the correlation coefficient between the bond price and the bond repo asset price at options' maturity, the convergence, with 0 indicating successful convergence, in numeric format, the options' prices predicted by the model, in numeric format
 }
 \description{
 bond_fut_irr_ytm
@@ -134,6 +137,7 @@ c(0, 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0.0025,  0.0025,
 c(seq(95.75, 96.5, 0.125), seq(96.5625, 98.75, 0.0625),
 seq(98.875, 99.5, 0.125)),
 0.0224,
+0.0224,
 0.02232,
 1,
 3,
@@ -151,8 +155,8 @@ as.Date("2026-08-21"),
 as.Date("2026-09-14"),
 as.Date("2026-08-14"),
 as.Date("2026-06-17"),
-ref_rate = "3-mth Euribor",
-country = "Germany",
-currency = "EUR")
+"Germany",
+"EUR",
+3)
 }
 }
