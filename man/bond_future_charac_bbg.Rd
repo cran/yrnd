@@ -10,7 +10,7 @@ bond_future_charac_bbg(bbg_tickers)
 \item{bbg_tickers}{a vector of Bloomberg tickers of bond futures contracts, in character format}
 }
 \value{
-for each bond futures contract, its maturity date in Date format, its currency, its listing place and its underlying asset all in character format.
+for each bond futures contract, its currency, its listing place and its underlying asset all in character format, its first delivery date and its maturity date, all in Date format
 }
 \description{
 bond_future_charac_bbg

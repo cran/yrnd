@@ -16,10 +16,9 @@ library(yrnd)
 library(yrnd)
 ```
 
-
 ## yrnd
 
-The package '"yrnd"' estimates a parametric form of the Risk Neutral Density (RND) of the price of fixed-income futures such as Short Term Interest Rates futures and government bond futures, using options written on those futures. The RND is estimated at options' maturity for all types of option's style. The futures price is modeled as a mixture of either two or three lognormal laws. The package provides with the options prices predicted with the fitted parameters, some statistics of the distribution as well as a density and a cumulative density plot. Leveraging on this, the package provides with several additional functions. First, it provides with the distribution of the STIR rate and the government bond yield themselves at options' maturity, using the RND of respectively the STIR futures price and the bond futures price. Then, the package extracts in one go from options prices on bond futures two RNDs at options' maturity: the RND of the cheapest-to-deliver bond yield and the RND of the ctd repo rate. Then, the packages provides with the probability attached to each bond in the delivery basket of a government bond futures contract to be the cheapest to deliver at options' maturity, either from the observation of the expected net basis distribution by bond at options' maturity, or from the observation of the implied repo rate distribution by bond at options' maturity. The package also provides with the probability attached to each bond to be the cheapest at futures' maturity. It also provides with the non parametric RND of the bond yield spread between two issuers or two maturities, using RNDs on two bond futures with the same maturity date and a Gaussian copula. At last, the package provides with functions to extract from Bloomberg interest rate futures contracts characteristics, options prices on interest futures and major characteristics of the bonds in the delivery basket of a government bond futures contract.
+The package "yrnd" estimates a parametric form of the Risk Neutral Density (RND) of the price of fixed-income futures such as Short Term Interest Rates futures and government bond futures, using options written on those futures. The RND is estimated at options' maturity for all types of option's style. The futures price is modeled as a mixture of either two or three lognormal laws. The package provides with the options prices predicted with the fitted parameters, some statistics of the distribution as well as a density and a cumulative density plot. Leveraging on this, the package provides with several additional functions. First, it provides with the distribution of the STIR rate and the government bond yield themselves at options' maturity, using the RND of respectively the STIR futures price and the bond futures price. Then, the package extracts in one go from options prices on bond futures two RNDs at options' maturity: the RND of the cheapest-to-deliver (ctd) bond yield and the RND of the ctd repo rate. Then, the packages provides with the probability attached to each bond in the delivery basket of a government bond futures contract to be the cheapest to deliver at options' maturity, either from the observation of the expected net basis distribution by bond at options' maturity, or from the observation of the implied repo rate distribution by bond at options' maturity. The package also quantifies the value of the quality option embedded in bond futures contract. It also provides with the non parametric RND of either the bond yield spread or the bond repo rate spread between two issuers or two maturities, using RNDs on two bond futures with the same maturity date and a Gaussian copula. At last, the package provides with functions to extract from Bloomberg interest rate futures contracts characteristics, options prices on interest futures and major characteristics of the bonds in the delivery basket of a government bond futures contract.
 
 
 ## stir_future_price provides with the risk neutral density at options' maturity of the STIR futures price, using options on the STIR futures
@@ -155,7 +154,7 @@ as.Date("2026-06-17"),
 
 
 
-## proba_ctd_opt calculates, for each bond in the delivery basket of a government bond futures contact, its probability to be the cheapest to deliver bond at options' maturity, relying successively on a ranking of the net basis and on a raking of the implied repo rate of each bond in the delivery basket at options' maturity
+## proba_ctd_opt calculates, for each bond in the delivery basket of a government bond futures contact, its probability to be the cheapest to deliver bond at options' maturity, relying successively on a ranking of the net basis and on a ranking of the implied repo rate of each bond in the delivery basket at options' maturity. It also quantifies the value of the quality option of the futures contract.
 
 ```{r}
 proba_ctd_opt( c(24.10, 23.10, 22.12, 21.12, 20.12, 19.14, 18.14, 17.16, 16.18, 15.20,
@@ -185,7 +184,6 @@ as.Date(c("2052-08-15", "2053-08-15", "2053-08-15", "2054-08-15", "2056-08-15"))
 100,
 c(0.361698, 0.641260, 0.641260, 0.750372, 0.809987),
 c(0.03500, 0.03507, 0.03492, 0.03510, 0.03514),
-2)
+2,
+as.Date("2026-09-08"))
 ```
-
-

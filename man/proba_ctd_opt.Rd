@@ -26,7 +26,8 @@ proba_ctd_opt(
   bond_nomi = 100,
   bond_conv_factor,
   bond_ytm,
-  sett
+  sett,
+  deliv_date
 )
 }
 \arguments{
@@ -40,9 +41,9 @@ proba_ctd_opt(
 
 \item{nb_log}{a number for the number of component densities in the lognormal mixture to model the bond futures' price, either 2 or 3, in numeric format}
 
-\item{r}{a number for the riskfree spot rate whose maturity is equal to the options' maturity, in numeric format}
+\item{r}{a number for the riskfree spot rate whose maturity is equal to the options' maturity date, in numeric format}
 
-\item{r_2}{a number for the riskfree spot rate whose maturity is equal to the futures' maturity, in numeric format}
+\item{r_2}{a number for the riskfree spot rate whose maturity is equal to the futures' maturity date, or to the delivery date if delivery takes place at another date, in numeric format}
 
 \item{day_count_conv}{a number for the day count convention, 1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360, in numeric format}
 
@@ -73,9 +74,11 @@ proba_ctd_opt(
 \item{bond_ytm}{a vector of the corresponding yields to maturity at observation date for the bonds in the delivery basket, in numeric format}
 
 \item{sett}{a number for the number of days between the ex-coupon date and the coupon payment date of the bonds in the delivery basket, in numeric format}
+
+\item{deliv_date}{a date for the delivery date of the bond, in Date format}
 }
 \value{
-for the bonds in the delivery basket, their ISIN in character format and their probability of being the CtD bond at options' maturity relying successively on their net compared bases at options' maturity and on their compared implied repo rates at option's maturity, in numeric format
+for the bonds in the delivery basket, their ISIN in character format and their probability of being the CtD bond at options' maturity relying successively on their net compared bases at options' maturity and on their compared implied repo rates at option's maturity, in numeric format. Also returns the value of the quality option embedded in the futures contract with the two methods
 }
 \description{
 proba_ctd_opt
@@ -109,7 +112,8 @@ as.Date(c("2052-08-15", "2053-08-15", "2053-08-15", "2054-08-15", "2056-08-15"))
 100,
 c(0.361698, 0.641260, 0.641260, 0.750372, 0.809987),
 c(0.03500, 0.03507, 0.03492, 0.03510, 0.03514),
-2)
+2,
+as.Date("2026-09-08"))
 }
 
 }

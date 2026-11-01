@@ -40,7 +40,7 @@
 #' @param ctry_1 a character for the nationality of the issuer of the bond in the first bond futures, in character format (NA by default)
 #' @param ctry_2 a character for the nationality of the issuer of the bond in the second bond futures, in character format (NA by default)
 #'
-#' @returns based on the user's correlation coefficient, 10,000 realizations of the bond yield spread between two different issuers or two bonds of the same issuer with different maturities, using options of identical maturity on two bond futures of identical maturity, and a density plot of the spread, in bps
+#' @returns based on the user's correlation coefficient, 10,000 realizations of the bond yield spread between either two different issuers or two bonds of the same issuer, using options on two bond futures of identical maturity, and a density plot of the spread, in bps
 #' @export
 #' @importFrom stats approx constrOptim density dlnorm plnorm pnorm qlnorm
 #' @importFrom utils head tail

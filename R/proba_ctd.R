@@ -65,6 +65,8 @@
 #' 2)
 #' }
 #'
+
+
 proba_ctd <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log, r, day_count_conv, cot,
                       ctd_matu, fut_price, fut_matu, option_matu, start_date, bond_ISIN, bond_coupon,
                       bond_cp_f, bond_matu, bond_nomi = 100, bond_conv_factor, bond_ytm, sett){
@@ -176,40 +178,42 @@ proba_ctd <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log
           ctd[[i]] <- replicate(nrow(deliv_bonds), ytm[, i] - deliv_bonds$ytm[i]) +
             t(replicate(nrow(ytm), deliv_bonds$ytm)) }
 
-        net_basis <- ctd_conf <- ctd_conf_2 <- list()
+        net_basis <- ctd_conf <- list()
 
         for (k in 1:length(ctd)){
           net_basis[[k]] <- list()
           for (i in 1:nrow(deliv_bonds)){
             net_basis[[k]][[i]] <- dirty(ctd[[k]][, i]) -
-              (bond_fut$discretized_rnd$domain*deliv_bonds$conv_factor[i] + deliv_bonds$acc_matu[i]  )}
+              (bond_fut$discretized_rnd$domain*deliv_bonds$conv_factor[i] + deliv_bonds$acc_matu[i]  )
+          }
           net_basis[[k]] <- do.call(cbind, net_basis[[k]])
-          ctd_conf_2[[k]] <- ctd_conf[[k]] <- apply(net_basis[[k]], 1, which.min)
-          ctd_conf_2[[k]][ctd_conf[[k]] != k] <- 0
+          ctd_conf[[k]] <- apply(net_basis[[k]], 1, which.min)
         }
 
-        ctd_conf_2 <- do.call(cbind, ctd_conf_2)
+        conf <- do.call(cbind, ctd_conf)
 
-        for (i in 1:length(ctd)){
-          ctd_conf_2[ctd_conf_2[, i] == i, -i] <- 0}
-
-        prb <- rowSums(ctd_conf_2)
-
-        if(length(which(prb == 0)) > 0){
-          prb[prb == 0] <- ctd_conf[[length(ctd)]][which(prb == 0)]
+        unique_bond <- list()
+        for (i in 1:ncol(conf)){
+          unique_bond[[i]] <- unique(conf[, i])
         }
-
-        ctd_pot <- unique(prb)
-
         prob <- list()
-        for (i in 1:length(ctd_pot)){
-          prob[[i]] <- sum(bond_fut$discretized_rnd$rnd[prb == ctd_pot[i]])*
-            first(diff(bond_fut$discretized_rnd$domain))}
+        for (i in 1:ncol(conf)){
+          prob[[i]] <- list()
+          for (j in 1:length(unique_bond[[i]])){
+            prob[[i]][[j]] <- sum(bond_fut$discretized_rnd$rnd[conf[, i] == unique_bond[[i]][[j]]])/
+              sum(bond_fut$discretized_rnd$rnd)
+          }
+          prob[[i]] <- unlist(prob[[i]])
+        }
 
-        prob <- round(unlist(prob), 3)
+        prob_own_ctd <- list()
+        for (i in 1:length(prob)){
+          prob_own_ctd[[i]] <- prob[[i]][unique_bond[[i]] == i]
+        }
 
-        probas <- data.frame(ISIN = c(deliv_bonds$ISIN[ctd_pot], deliv_bonds$ISIN[-ctd_pot]),
-                             proba_ctd_matu = c(prob, rep(0, length(deliv_bonds$ISIN[-ctd_pot])))) %>%
+        prob_own_ctd[lengths(prob_own_ctd) == 0] <- 0
+
+        probas <- data.frame(ISIN = deliv_bonds$ISIN, proba_ctd_matu = round(unlist(prob_own_ctd), 3)) %>%
           arrange(desc(proba_ctd_matu))
 
         return(probas)

@@ -56,9 +56,9 @@ bond_fut_irr_ytm(
 
 \item{r}{a number for the riskfree spot rate whose maturity is equal to the options' maturity, in numeric format}
 
-\item{r_2}{a number for the spot repo funding rate of the underlying bond, with maturity equal to the options' maturity, in numeric format}
+\item{r_2}{a number for the spot repo funding rate of the underlying bond, with maturity equal to the options' maturity (by default, the General Collateral repo rate of the jurisdiction), in numeric format}
 
-\item{r_3}{a number for the spot repo funding rate of the underlying bond, with maturity equal to the futures' maturity, in numeric format}
+\item{r_3}{a number for the spot repo funding rate of the underlying bond, with maturity equal to the futures' maturity (by default, the General Collateral repo rate of the jurisdiction), in numeric format}
 
 \item{day_count_conv}{a number for the day count convention, 1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360, in numeric format}
 
@@ -99,7 +99,7 @@ bond_fut_irr_ytm(
 \item{term_stir}{a number for the term to maturity, in months, of the STIR at observation date, in numeric format}
 }
 \value{
-the parameters (means, standard deviations and weight in the first component lognormal law) of respectively the RND of the bond price and the RND of the bond repo asset price at options' maturity, the mean, standard deviation, skewness, kurtosis, mode, quantiles of order 0.1\%, 0.5\%, 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%, 99.5\% and 99.9\% of respectively the bond yield and the bond repo rate distributions in numeric format, the discretized domain and associated RND values of respectively the bond yield to maturity and of the bond repo rate at options' maturity, in numeric format, the RND and CDF plots of respectively the bond yield to maturity and the bond repo rate at options' maturity,  the correlation coefficient between the bond price and the bond repo asset price at options' maturity, the convergence, with 0 indicating successful convergence, in numeric format, the options' prices predicted by the model, in numeric format
+for the cheapest to deliver bond of the futures contract, the parameters (means, standard deviations and weight in the first component lognormal law) of respectively the RND of the bond price and the RND of the bond repo asset price at options' maturity, the mean, standard deviation, skewness, kurtosis, mode, quantiles of order 0.1\%, 0.5\%, 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%, 99.5\% and 99.9\% of respectively the bond yield and the bond repo rate distributions in numeric format, the discretized domain and associated RND values of respectively the bond yield to maturity and of the bond repo rate at options' maturity, in numeric format, the RND and CDF plots of respectively the bond yield to maturity and the bond repo rate at options' maturity,  the correlation coefficient between the bond price and the bond repo asset price at options' maturity, the convergence, with 0 indicating successful convergence, in numeric format, the options' prices predicted by the model, in numeric format
 }
 \description{
 bond_fut_irr_ytm

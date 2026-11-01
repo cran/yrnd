@@ -64,7 +64,6 @@
 #' "EUR")
 #' }
 #'
-
 ctd_bond_yield <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log, r, r_2, day_count_conv,
                            cot, conv_factor, ctd_cp, ctd_matu, cp_f, ctd_N, sett, fut_price, fut_matu,
                            option_matu, start_date, nationality = NA, currency = NA){

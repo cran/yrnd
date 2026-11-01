@@ -5,8 +5,8 @@
 #' @param put_prices a vector of put prices on the same bond futures, in numeric format
 #' @param put_strikes a vector of put strikes attached to the put prices, in numeric format
 #' @param nb_log a number for the number of component densities in the lognormal mixture to model the bond futures' price, either 2 or 3, in numeric format
-#' @param r a number for the riskfree spot rate whose maturity is equal to the options' maturity, in numeric format
-#' @param r_2 a number for the riskfree spot rate whose maturity is equal to the futures' maturity, in numeric format
+#' @param r a number for the riskfree spot rate whose maturity is equal to the options' maturity date, in numeric format
+#' @param r_2 a number for the riskfree spot rate whose maturity is equal to the futures' maturity date, or to the delivery date if delivery takes place at another date, in numeric format
 #' @param day_count_conv a number for the day count convention, 1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360, in numeric format
 #' @param cot a number for the options' style, 1 for European options, 2 for American options and 3 for American options with futures-style margin, in numeric format
 #' @param ctd_matu a date for the maturity date of the current Cheapest-to-Deliver Bond of the bond futures, in Date format
@@ -22,8 +22,10 @@
 #' @param bond_conv_factor a vector of the corresponding conversion factors for the bonds in the delivery basket, in numeric format
 #' @param bond_ytm a vector of the corresponding yields to maturity at observation date for the bonds in the delivery basket, in numeric format
 #' @param sett a number for the number of days between the ex-coupon date and the coupon payment date of the bonds in the delivery basket, in numeric format
+#' @param deliv_date a date for the delivery date of the bond, in Date format
 #'
-#' @returns for the bonds in the delivery basket, their ISIN in character format and their probability of being the CtD bond at options' maturity relying successively on their net compared bases at options' maturity and on their compared implied repo rates at option's maturity, in numeric format
+#'
+#' @returns for the bonds in the delivery basket, their ISIN in character format and their probability of being the CtD bond at options' maturity relying successively on their net compared bases at options' maturity and on their compared implied repo rates at option's maturity, in numeric format. Also returns the value of the quality option embedded in the futures contract with the two methods
 #' @export
 #'
 #' @importFrom stats approx constrOptim density dlnorm nlminb plnorm pnorm
@@ -64,21 +66,25 @@
 #' 100,
 #' c(0.361698, 0.641260, 0.641260, 0.750372, 0.809987),
 #' c(0.03500, 0.03507, 0.03492, 0.03510, 0.03514),
-#' 2)
+#' 2,
+#' as.Date("2026-09-08"))
 #' }
 #'
+
+
 proba_ctd_opt <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log, r, r_2, day_count_conv, cot,
                           ctd_matu, fut_price, fut_matu, option_matu, start_date, bond_ISIN, bond_coupon,
-                          bond_cp_f, bond_matu, bond_nomi = 100, bond_conv_factor, bond_ytm, sett){
+                          bond_cp_f, bond_matu, bond_nomi = 100, bond_conv_factor, bond_ytm, sett, deliv_date){
 
   if(length(nb_log) == 1 & length(r) == 1 & length(r_2) == 1 & length(day_count_conv) == 1 & length(cot) == 1 &
-     length(ctd_matu) == 1 & length(fut_price) == 1 & length(fut_matu) == 1 & length(option_matu) == 1 & length(start_date) == 1 &
+     length(ctd_matu) == 1 & length(fut_price) == 1 & length(fut_matu) == 1 & length(option_matu) == 1 &
+     length(start_date) == 1 & length(deliv_date) == 1 &
      length(call_prices) > 1 & length(call_strikes) > 1 & length(put_prices) > 1 & length(put_strikes) > 1 &
      length(bond_ISIN) > 1 & identical(length(bond_ISIN), length(bond_coupon), length(bond_cp_f), length(bond_matu),
                                        length(bond_conv_factor), length(bond_ytm))){
 
-    if(start_date < option_matu & option_matu <= fut_matu &
-       length(which(as.Date(fut_matu) - as.Date(bond_matu) > 0)) == 0 ){
+    if(start_date < option_matu & option_matu <= deliv_date & deliv_date <= fut_matu &
+       length(which(as.Date(deliv_date) - as.Date(bond_matu) > 0)) == 0 ){
 
       deliverables <- data.frame(bond_ISIN, bond_coupon, bond_matu, bond_conv_factor, bond_ytm, bond_cp_f) %>%
         rename_with(~c("ISIN", "coupon", "matu", "conv_factor", "ytm", "cp_freq")) %>% mutate_at("matu", as.Date) %>%
@@ -95,19 +101,19 @@ proba_ctd_opt <- function(call_prices, call_strikes, put_prices, put_strikes, nb
                                                                          ifelse(option_matu - . < 0, . %m-% months(6), .)))) %>%
                                  mutate(curr_cp_dt = prev_cp_dt %m+% months(6), next_cp_dt = curr_cp_dt %m+% months(6)))
 
-      terms <- data.frame(fut_matu, option_matu) %>% mutate_all(as.Date)
+      terms <- data.frame(deliv_date, option_matu) %>% mutate_all(as.Date)
 
       if(day_count_conv == 1){
         terms <- terms %>% mutate(option_term = as.numeric(option_matu - start_date)/
                                     as.numeric(ceiling_date(option_matu, "year") - floor_date(start_date, "year")),
-                                  res_term = as.numeric(fut_matu - option_matu)/
-                                    as.numeric(ceiling_date(fut_matu, "year") - floor_date(option_matu, "year") ))
+                                  res_term = as.numeric(deliv_date - option_matu)/
+                                    as.numeric(ceiling_date(deliv_date, "year") - floor_date(option_matu, "year") ))
       } else if(day_count_conv == 2){
         terms <- terms %>% mutate(option_term = as.numeric(option_matu - start_date)/360,
-                                  res_term = as.numeric(fut_matu - option_matu)/360)
+                                  res_term = as.numeric(deliv_date - option_matu)/360)
       } else if(day_count_conv == 3){
         terms <- terms %>% mutate(option_term =as.numeric(option_matu - start_date)/365,
-                                  res_term = as.numeric(fut_matu - option_matu)/365)
+                                  res_term = as.numeric(deliv_date - option_matu)/365)
       } else {
         terms <- terms %>% mutate(stub_1 = max(0, 30 - as.numeric(format(start_date, "%d"))),
                                   stub_2 = min(30, as.numeric(format(option_matu, "%d"))),
@@ -115,8 +121,8 @@ proba_ctd_opt <- function(call_prices, call_strikes, put_prices, put_strikes, nb
                                                                      ceiling_date(start_date, "months")))/30),
                                   option_term = (stub_1 + stub_2 + plain_months*30)/360,
                                   stub_1_res = max(0, 30 - as.numeric(format(option_matu + sett, "%d"))),
-                                  stub_2_res = min(30, as.numeric(format(fut_matu, "%d"))),
-                                  plain_months_res = round(as.numeric(floor_date(fut_matu, "months") -
+                                  stub_2_res = min(30, as.numeric(format(deliv_date, "%d"))),
+                                  plain_months_res = round(as.numeric(floor_date(deliv_date, "months") -
                                                                         ceiling_date(option_matu + sett, "months") )/30),
                                   res_term = (stub_1_res + stub_2_res + max(0, plain_months_res)*30)/360)}
 
@@ -127,32 +133,32 @@ proba_ctd_opt <- function(call_prices, call_strikes, put_prices, put_strikes, nb
 
       fwd_1 <- diff(rate_table$d_fact)/diff(rate_table$term)
 
-      bef <- which(terms$fut_matu < deliv_bonds$curr_cp_dt)
-      aft <- which(terms$fut_matu >= deliv_bonds$curr_cp_dt)
+      bef <- which(terms$deliv_date < deliv_bonds$curr_cp_dt)
+      aft <- which(terms$deliv_date >= deliv_bonds$curr_cp_dt)
 
       if(day_count_conv == 1){
-        deliv_bonds <- bind_rows(deliv_bonds[bef, ] %>% mutate(acc_matu = Nomi*coupon*as.numeric(terms$fut_matu - prev_cp_dt - sett)/
-                                                                 as.numeric(ceiling_date(terms$fut_matu, "year") - floor_date(terms$fut_matu, "year") )),
-                                 deliv_bonds[aft, ] %>% mutate(res_term_2 = as.numeric(terms$fut_matu - curr_cp_dt - sett)/
-                                                                 as.numeric(ceiling_date(terms$fut_matu, "year") - floor_date(terms$fut_matu, "year") ),
+        deliv_bonds <- bind_rows(deliv_bonds[bef, ] %>% mutate(acc_matu = Nomi*coupon*as.numeric(terms$deliv_date - prev_cp_dt - sett)/
+                                                                 as.numeric(ceiling_date(terms$deliv_date, "year") - floor_date(terms$deliv_date, "year") )),
+                                 deliv_bonds[aft, ] %>% mutate(res_term_2 = as.numeric(terms$deliv_date - curr_cp_dt - sett)/
+                                                                 as.numeric(ceiling_date(terms$deliv_date, "year") - floor_date(terms$deliv_date, "year") ),
                                                                acc_matu = Nomi*coupon*res_term_2 ))
       } else if(day_count_conv == 2) {
-        deliv_bonds <- bind_rows(deliv_bonds[bef, ] %>% mutate(acc_matu = Nomi*coupon*as.numeric(terms$fut_matu - prev_cp_dt - sett)/360),
-                                 deliv_bonds[aft, ] %>% mutate(res_term_2 = as.numeric(terms$fut_matu - curr_cp_dt - sett)/360,
+        deliv_bonds <- bind_rows(deliv_bonds[bef, ] %>% mutate(acc_matu = Nomi*coupon*as.numeric(terms$deliv_date - prev_cp_dt - sett)/360),
+                                 deliv_bonds[aft, ] %>% mutate(res_term_2 = as.numeric(terms$deliv_date - curr_cp_dt - sett)/360,
                                                                acc_matu = Nomi*coupon*res_term_2))
       } else if(day_count_conv == 3){
-        deliv_bonds <- bind_rows(deliv_bonds[bef, ] %>% mutate(acc_matu = Nomi*coupon*as.numeric(terms$fut_matu - prev_cp_dt - sett)/365),
-                                 deliv_bonds[aft, ] %>% mutate(res_term_2 = as.numeric(terms$fut_matu - curr_cp_dt - sett)/365,
+        deliv_bonds <- bind_rows(deliv_bonds[bef, ] %>% mutate(acc_matu = Nomi*coupon*as.numeric(terms$deliv_date - prev_cp_dt - sett)/365),
+                                 deliv_bonds[aft, ] %>% mutate(res_term_2 = as.numeric(terms$deliv_date - curr_cp_dt - sett)/365,
                                                                acc_matu = Nomi*coupon*res_term_2))
       } else{
         deliv_bonds <- bind_rows(deliv_bonds[bef, ] %>% mutate(stub_1 = max(0, 30 - as.numeric(format(prev_cp_dt + sett, "%d"))),
-                                                               stub_2 = min(30, as.numeric(format(terms$fut_matu, "%d"))),
-                                                               plain_months = round(as.numeric(floor_date(terms$fut_matu, "months") -
+                                                               stub_2 = min(30, as.numeric(format(terms$deliv_date, "%d"))),
+                                                               plain_months = round(as.numeric(floor_date(terms$deliv_date, "months") -
                                                                                                  ceiling_date(prev_cp_dt + sett, "months") )/30),
                                                                acc_matu = Nomi*coupon*(stub_2 + stub_1 + max(0, plain_months)*30)/360 ),
                                  deliv_bonds[aft, ] %>% mutate(stub_1 = max(0, 30 - as.numeric(format(curr_cp_dt + sett, "%d"))),
-                                                               stub_2 = min(30, as.numeric(format(terms$fut_matu, "%d"))),
-                                                               plain_months = round(as.numeric(floor_date(terms$fut_matu, "months") -
+                                                               stub_2 = min(30, as.numeric(format(terms$deliv_date, "%d"))),
+                                                               plain_months = round(as.numeric(floor_date(terms$deliv_date, "months") -
                                                                                                  ceiling_date(curr_cp_dt + sett, "months") )/30),
                                                                res_term_2 = (stub_1 + stub_2 + max(0, plain_months)*30)/360,
                                                                acc_matu = Nomi*coupon*res_term_2))
@@ -160,17 +166,34 @@ proba_ctd_opt <- function(call_prices, call_strikes, put_prices, put_strikes, nb
 
       deliv_bonds <- deliv_bonds[match(deliverables$ISIN, deliv_bonds$ISIN), ]
 
-      rate_table_bond <- fwd_2 <- list()
+      fwd_2 <- list()
       for (i in aft){
-        rate_table_bond[[i]] <- rate_table %>%
+        rate_table_bond <- rate_table %>%
           add_row(term = terms$res_term + terms$option_term - deliv_bonds$res_term_2[i])
-        rate_table_bond[[i]]$rates[3] <- approx(rate_table_bond[[i]]$term[1:2],
-                                                rate_table_bond[[i]]$rates[1:2],
-                                                xout = rate_table_bond[[i]]$term[3],
-                                                method = "linear", n = 50, rule = 2, f = 0, ties = "ordered", na.rm = F)$y
-        rate_table_bond[[i]]$d_fact[3] <- rate_table_bond[[i]]$term[3]*rate_table_bond[[i]]$rates[3]
-        fwd_2[[i]] <- diff(rate_table_bond[[i]]$d_fact[-1])/diff(rate_table_bond[[i]]$term[-1])
+        rate_table_bond$rates[3] <- approx(rate_table_bond$term[1:2],
+                                           rate_table_bond$rates[1:2],
+                                           xout = rate_table_bond$term[3],
+                                           method = "linear", n = 50, rule = 2, f = 0, ties = "ordered", na.rm = F)$y
+        rate_table_bond$d_fact[3] <- rate_table_bond$term[3]*rate_table_bond$rates[3]
+        fwd_2[[i]] <- data.frame(ISIN = deliv_bonds$ISIN[i], fwd_2 = diff(rate_table_bond$d_fact[-1])/diff(rate_table_bond$term[-1]) )
       }
+
+
+      if (length(which(lengths(fwd_2)!=0)) > 1){
+        fwd_2 <- do.call(rbind, fwd_2)
+        deliv_bonds <- left_join(deliv_bonds, fwd_2, by = "ISIN")
+      } else if (length(which(lengths(fwd_2)!=0)) == 1) {
+        fwd_2 <- data.frame(fwd_2[lengths(fwd_2) > 0])
+        deliv_bonds <- left_join(deliv_bonds, fwd_2, by = "ISIN")
+      } else { deliv_bonds <- deliv_bonds}
+
+      deliv_bonds <- deliv_bonds %>% mutate(inter_cp = 0, inter_cp_fv = 0)
+
+      if(length(aft) == 0){
+        deliv_bonds <- deliv_bonds
+      } else {deliv_bonds[aft, ] <- deliv_bonds[aft, ] %>%
+        mutate(inter_cp = coupon/cp_freq*Nomi,
+               inter_cp_fv = inter_cp*exp(fwd_2*res_term_2) )}
 
       true_cp_dt <- stub <- cp_dt_2 <- list()
 
@@ -209,20 +232,78 @@ proba_ctd_opt <- function(call_prices, call_strikes, put_prices, put_strikes, nb
 
 
       tri <- function(x){
-        if(terms$fut_matu < deliv_bonds$curr_cp_dt[i]){
-          tri <- mapply(xirr, cf = mapply(c, -(x*deliv_bonds$conv_factor[i] + deliv_bonds$acc_matu[i] )*exp( -fwd_1*terms$res_term),
+        if(terms$deliv_date < deliv_bonds$curr_cp_dt[i]){
+          tri <- mapply(xirr, cf = mapply(c, -(x*deliv_bonds$conv_factor[i] + deliv_bonds$acc_matu[i] )*exp(-fwd_1*terms$res_term),
                                           cf_other[i], cf_matu[i], SIMPLIFY = F),
                         tau = mapply(c, 0, mapply(unlist, cp_dt_2[i], SIMPLIFY = F), SIMPLIFY = F))
         } else{tri <- mapply(xirr, cf = mapply(c, -(x*deliv_bonds$conv_factor[i] + deliv_bonds$acc_matu[i] +
-                                                      deliv_bonds$coupon[i]/deliv_bonds$cp_freq[i]*Nomi*exp(fwd_2[[i]]*deliv_bonds$res_term_2[i]) )*exp( -fwd_1*terms$res_term),
+                                                      deliv_bonds$coupon[i]/deliv_bonds$cp_freq[i]*
+                                                      Nomi*exp(deliv_bonds$fwd_2[i]*deliv_bonds$res_term_2[i]) )*exp( -fwd_1*terms$res_term),
                                                cf_other[i], cf_matu[i], SIMPLIFY = F),
                              tau = mapply(c, 0, mapply(unlist, cp_dt_2[i], SIMPLIFY = F), SIMPLIFY = F) )}
       }
 
+      ctd_cp_dt <- stub_ctd <- ctd_cp_dt_2 <- px_spot <- dur_spot <- list()
+
+      for (i in 1:nrow(deliv_bonds)){
+
+        if(start_date > deliv_bonds$prev_cp_dt[i]){
+          if(deliv_bonds$cp_freq[i] == 1){
+            ctd_cp_dt[[i]] <- seq(from = deliv_bonds$curr_cp_dt[i], to = deliv_bonds$matu[i], by = "year")
+          } else { ctd_cp_dt[[i]] <- seq(from = deliv_bonds$curr_cp_dt[i], to = deliv_bonds$matu[i], by = "quarter")
+          ctd_cp_dt[[i]] <- ctd_cp_dt[[i]][seq(1, length(ctd_cp_dt[[i]]), by = 2)] }
+        } else {
+          if(deliv_bonds$cp_freq[i] == 1){
+            ctd_cp_dt[[i]] <- seq(from = deliv_bonds$prev_cp_dt[i], to = deliv_bonds$matu[i], by = "year")
+          } else { ctd_cp_dt[[i]] <- seq(from = deliv_bonds$prev_cp_dt[i], to = deliv_bonds$matu[i], by = "quarter")
+          ctd_cp_dt[[i]] <- ctd_cp_dt[[i]][seq(1, length(ctd_cp_dt[[i]]), by = 2)] }
+        }
+
+        ctd_cp_dt[[i]] <- c(head(ctd_cp_dt[[i]], -1) + sett, tail(ctd_cp_dt[[i]], 1))
+        ctd_cp_dt[[i]] <- c(start_date, ctd_cp_dt[[i]])
+
+        if(day_count_conv == 1){
+          if(deliv_bonds$cp_freq[i] == 1){ stub_ctd[[i]] <- as.numeric(diff(head(ctd_cp_dt[[i]], 2)))/
+            as.numeric(deliv_bonds$curr_cp_dt[i] - deliv_bonds$prev_cp_dt[i])
+          } else {stub_ctd[[i]] <- as.numeric(diff(head(ctd_cp_dt[[i]], 2)))/
+            as.numeric(ceiling_date(deliv_bonds$prev_cp_dt[i] + sett, "year") -
+                         floor_date(deliv_bonds$prev_cp_dt[i] + sett, "year")) }
+          ctd_cp_dt_2[[i]] <- stub_ctd[[i]] + c(0, seq(1, length(ctd_cp_dt[[i]]) - 2)/deliv_bonds$cp_freq[i])
+        } else if(day_count_conv == 2){ ctd_cp_dt_2[[i]] <- tail(as.numeric(ctd_cp_dt[[i]] - first(ctd_cp_dt[[i]])), -1)/360
+        } else if(day_count_conv == 3){ ctd_cp_dt_2[[i]] <- tail(as.numeric(ctd_cp_dt[[i]] - first(ctd_cp_dt[[i]])), -1)/365
+        } else {stub_ctd[[i]] <- (max(0, 30 - as.numeric(format(ctd_cp_dt[[i]][1], "%d"))) +
+                                    as.numeric(round((floor_date(ctd_cp_dt[[i]][2], "months") -
+                                                        ceiling_date(ctd_cp_dt[[i]][1], "months"))/30))*30 +
+                                    min(30, as.numeric(format(ctd_cp_dt[[i]][2], "%d"))))/360
+        ctd_cp_dt_2[[i]] <- stub_ctd[[i]] + c(0, seq(1, length(ctd_cp_dt[[i]]) - 2)/deliv_bonds$cp_freq[[i]])}
+
+        ctd_cp_dt_2[[i]] <- list(ctd_cp_dt_2[[i]])
+      }
+
+      ctd_cf_matu <- Nomi*(1 + deliv_bonds$coupon/deliv_bonds$cp_freq)
+      ctd_cf_other <- split(rep(deliv_bonds$coupon/deliv_bonds$cp_freq*Nomi,
+                                sapply(ctd_cp_dt_2, lengths) - 1),
+                            rep(seq_along(ctd_cp_dt_2), sapply(ctd_cp_dt_2, lengths) - 1))
+
+      for (i in 1:nrow(deliv_bonds)){
+        px_spot[[i]] <- sum(unlist(mapply("/", list(c(unlist(ctd_cf_other[i]), ctd_cf_matu[i])),
+                                          mapply("^", 1 + deliv_bonds$ytm[i], list(unlist(ctd_cp_dt_2[[i]])),  SIMPLIFY = F), SIMPLIFY = F)  ))
+        dur_spot[[i]] <- sum(unlist(mapply("/", mapply("*", list(unlist(ctd_cp_dt_2[[i]])), list(c(unlist(ctd_cf_other[i]), ctd_cf_matu[i]))),
+                                           unlist(mapply("^", 1 + deliv_bonds$ytm[i], list(unlist(ctd_cp_dt_2[[i]])),  SIMPLIFY = F)), SIMPLIFY = F)  ))/px_spot[[i]]
+      }
+
+      ctd_fwd_price <- list()
+      for (i in 1:nrow(deliv_bonds)){
+        ctd_fwd_price[[i]] <- fut_price +
+          deliv_bonds$acc_matu[i]/deliv_bonds$conv_factor[i]}
+
       bond_fut <- bond_future_price(call_prices, call_strikes, put_prices, put_strikes, nb_log, r,
                                     day_count_conv, cot, ctd_matu, fut_price, fut_matu, option_matu, start_date)
 
+
       if(length(bond_fut) > 0 ){
+
+        ytm <- ctd <- net_basis <- ctd_conf <- fv <- list()
 
         ytm <- list()
         for (i in 1:nrow(deliv_bonds)){
@@ -232,98 +313,146 @@ proba_ctd_opt <- function(call_prices, call_strikes, put_prices, put_strikes, nb
 
         ctd <- list()
         for (i in 1:nrow(deliv_bonds)){
-          ctd[[i]] <- replicate(nrow(deliv_bonds), ytm[, i] - deliv_bonds$ytm[i]) +
+          ctd[[i]] <- replicate(nrow(deliv_bonds), (ytm[, i] - deliv_bonds$ytm[i])/dur_spot[[i]])*
+            t(replicate(nrow(ytm), unlist(dur_spot))) +
             t(replicate(nrow(ytm), deliv_bonds$ytm)) }
+
 
         dirty <- function(x){
           dcf <- mapply("/", list(c(unlist(cf_other[i]), cf_matu[i])),
                         mapply("^", 1 + x, list(unlist(cp_dt_2[[i]])),  SIMPLIFY = F), SIMPLIFY = F)
           dirty <- unlist(lapply(dcf, sum))}
 
-        net_basis <- ctd_conf <- ctd_conf_2 <- list()
-
         for (k in 1:length(ctd)){
-          net_basis[[k]] <- list()
-          for (i in which(terms$fut_matu < deliv_bonds$curr_cp_dt)){
-            net_basis[[k]][[i]] <- dirty(ctd[[k]][, i])*exp(fwd_1*terms$res_term) -
-              (bond_fut$discretized_rnd$domain*deliv_bonds$conv_factor[i] + deliv_bonds$acc_matu[i]  )}
-          for (i in which(terms$fut_matu >= deliv_bonds$curr_cp_dt)){
-            net_basis[[k]][[i]] <-  dirty(ctd[[k]][, i])*exp(fwd_1*terms$res_term) -
-              (bond_fut$discretized_rnd$domain*deliv_bonds$conv_factor[i] + deliv_bonds$acc_matu[i] +
-                 deliv_bonds$coupon[i]/deliv_bonds$cp_freq[i]*Nomi*exp(fwd_2[[i]]*deliv_bonds$res_term_2[i]) ) }
+          net_basis[[k]] <- fv[[k]] <- list()
+          for (i in 1:nrow(deliv_bonds)){
+            fv[[k]][[i]] <- (dirty(ctd[[k]][, i])*exp(fwd_1*terms$res_term) -
+                               deliv_bonds$inter_cp_fv[i])/deliv_bonds$conv_factor[i]
+            net_basis[[k]][[i]] <- (fv[[k]][[i]] - bond_fut$discretized_rnd$domain)*
+              deliv_bonds$conv_factor[i] - deliv_bonds$acc_matu[i]
+          }
+          fv[[k]] <- do.call(cbind, fv[[k]])
           net_basis[[k]] <- do.call(cbind, net_basis[[k]])
-          ctd_conf_2[[k]] <- ctd_conf[[k]] <- apply(net_basis[[k]], 1, which.min)
-          ctd_conf_2[[k]][ctd_conf[[k]] != k] <- 0
+          ctd_conf[[k]] <- apply(net_basis[[k]], 1, which.min)
         }
 
-        ctd_conf_2 <- do.call(cbind, ctd_conf_2)
-
-        for (i in 1:length(ctd)){
-          ctd_conf_2[ctd_conf_2[, i] == i, -i] <- 0}
-
-        prb <- rowSums(ctd_conf_2)
-
-        if(length(which(prb == 0)) > 0){
-          prb[prb == 0] <- ctd_conf[[length(ctd)]][which(prb == 0)]
+        conf <- do.call(cbind, ctd_conf)
+        select_bond <- list()
+        conf_unique <- conf_unique_freq <- list()
+        for (i in 1:nrow(deliv_bonds)){
+          conf_unique[[i]] <- unique(conf[, i])
+          conf_unique_freq[[i]] <- select_bond[[i]] <- list()
+          for (j in 1:length(conf_unique[[i]])){
+            conf_unique_freq[[i]][[j]] <- which(conf_unique[[i]][j] == conf[, i])
+            select_bond[[i]][[j]] <-  fv[[i]][conf_unique_freq[[i]][[j]] , conf_unique[[i]][j]]
+          }
+          select_bond[[i]] <- unlist(select_bond[[i]])
         }
 
-        ctd_pot <- unique(prb)
+
+        bond_price_mean <- mapply("/", lapply(mapply("*", select_bond, list(bond_fut$discretized_rnd$rnd), SIMPLIFY = F), sum),
+                                  sum(bond_fut$discretized_rnd$rnd), SIMPLIFY = F)
 
         prob <- list()
-        for (i in 1:length(ctd_pot)){
-          prob[[i]] <- sum(bond_fut$discretized_rnd$rnd[prb == ctd_pot[i]])*
-            first(diff(bond_fut$discretized_rnd$domain))}
+        for (i in 1:ncol(conf)){
+          prob[[i]] <- list()
+          for (j in 1:length(conf_unique[[i]])){
+            prob[[i]][[j]] <- sum(bond_fut$discretized_rnd$rnd[conf[, i] == conf_unique[[i]][[j]]])/
+              sum(bond_fut$discretized_rnd$rnd)
+          }
+          prob[[i]] <- unlist(prob[[i]])
+        }
 
-        prob <- round(unlist(prob), 3)
+        prob_own_ctd <- list()
+        for (i in 1:length(prob)){
+          prob_own_ctd[[i]] <- prob[[i]][conf_unique[[i]] == i]
+        }
 
-        probas <- data.frame(ISIN = c(deliv_bonds$ISIN[ctd_pot], deliv_bonds$ISIN[-ctd_pot]),
-                             proba_ctd_min_net_basis = c(prob, rep(0, length(deliv_bonds$ISIN[-ctd_pot])))) %>%
+        prob_own_ctd[lengths(prob_own_ctd) == 0] <- 0
+
+        bond_option_value <- mapply("-", ctd_fwd_price, bond_price_mean, SIMPLIFY = F)
+
+        bond_option_value <- pmax(0, unlist(bond_option_value))
+
+        option_value <- sum(unlist(mapply("*", bond_option_value, prob_own_ctd, SIMPLIFY = F)))
+
+        probas <- data.frame(ISIN = deliv_bonds$ISIN, proba_ctd_min_net_basis = round(unlist(prob_own_ctd), 3)) %>%
           arrange(desc(proba_ctd_min_net_basis))
 
 
-        i_repo <- ctd_conf_3 <- ctd_conf_4 <- list()
+        i_repo <- ctd_conf_2 <-  list()
         for (k in 1:length(ctd)){
           i_repo[[k]] <- list()
-          for (i in which(terms$fut_matu < deliv_bonds$curr_cp_dt)){
-            i_repo[[k]][[i]] <- (bond_fut$discretized_rnd$domain*deliv_bonds$conv_factor[i] +
-                                   deliv_bonds$acc_matu[i]  )/dirty(ctd[[k]][, i])  }
-          for (i in which(terms$fut_matu >= deliv_bonds$curr_cp_dt)){
-            i_repo[[k]][[i]] <- (bond_fut$discretized_rnd$domain*deliv_bonds$conv_factor[i] +
-                                   deliv_bonds$acc_matu[i] +
-                                   deliv_bonds$coupon[i]/deliv_bonds$cp_freq[i]*Nomi )/
-              dirty(ctd[[k]][, i])}
+          for (i in which(terms$deliv_date < deliv_bonds$curr_cp_dt)){
+            i_repo[[k]][[i]] <- mapply(xirr, cf = mapply(c, -dirty(ctd[[k]][, i]),
+                                                         bond_fut$discretized_rnd$domain*deliv_bonds$conv_factor[i] +
+                                                           deliv_bonds$acc_matu[i], SIMPLIFY = F),
+                                       tau = mapply(c, 0, terms$res_term, SIMPLIFY = F) , SIMPLIFY = F)
+          }
+          for (i in which(terms$deliv_date >= deliv_bonds$curr_cp_dt)){
+            i_repo[[k]][[i]] <- mapply(xirr, cf = mapply(c, -dirty(ctd[[k]][, i]), deliv_bonds$inter_cp[i],
+                                                         bond_fut$discretized_rnd$domain*deliv_bonds$conv_factor[i] +
+                                                           deliv_bonds$acc_matu[i], SIMPLIFY = F),
+                                       tau = mapply(c, 0, terms$res_term - deliv_bonds$res_term_2[i], terms$res_term, SIMPLIFY = F) ,
+                                       SIMPLIFY = F)
+          }
           i_repo[[k]] <- do.call(cbind, i_repo[[k]])
-          ctd_conf_4[[k]] <- ctd_conf_3[[k]] <- apply(i_repo[[k]], 1, which.max)
-          ctd_conf_4[[k]][ctd_conf_3[[k]] != k] <- 0
+          ctd_conf_2[[k]] <- apply(i_repo[[k]], 1, which.max)
         }
 
-        ctd_conf_4 <- do.call(cbind, ctd_conf_4)
 
-        for (i in 1:length(i_repo)){
-          ctd_conf_4[ctd_conf_4[, i] == i, -i] <- 0}
 
-        prb_2 <- rowSums(ctd_conf_4)
-
-        if(length(which(prb_2 == 0)) > 0){
-          prb_2[prb_2 == 0] <- ctd_conf_3[[length(i_repo)]][which(prb_2 == 0)]
+        conf_2 <- do.call(cbind, ctd_conf_2)
+        select_bond_2 <- list()
+        conf_2_unique <- conf_2_unique_freq <- list()
+        for (i in 1:nrow(deliv_bonds)){
+          conf_2_unique[[i]] <- unique(conf_2[, i])
+          conf_2_unique_freq[[i]] <- select_bond_2[[i]] <- list()
+          for (j in 1:length(conf_2_unique[[i]])){
+            conf_2_unique_freq[[i]][[j]] <- which(conf_2_unique[[i]][[j]] == conf_2[, i])
+            select_bond_2[[i]][[j]] <-  fv[[i]][conf_2_unique_freq[[i]][[j]] , conf_2_unique[[i]][[j]]]
+          }
+          select_bond_2[[i]] <- unlist(select_bond_2[[i]])
         }
 
-        ctd_pot_2 <- unique(prb_2)
+
+        bond_price_mean_2 <- mapply("/", lapply(mapply("*", select_bond_2, list(bond_fut$discretized_rnd$rnd), SIMPLIFY = F), sum),
+                                    sum(bond_fut$discretized_rnd$rnd), SIMPLIFY = F)
 
         prob_2 <- list()
-        for (i in 1:length(ctd_pot_2)){
-          prob_2[[i]] <- sum(bond_fut$discretized_rnd$rnd[prb_2 == ctd_pot_2[i]])*
-            first(diff(bond_fut$discretized_rnd$domain))}
+        for (i in 1:ncol(conf_2)){
+          prob_2[[i]] <- list()
+          for (j in 1:length(conf_2_unique[[i]])){
+            prob_2[[i]][[j]] <- sum(bond_fut$discretized_rnd$rnd[conf_2[, i] == conf_2_unique[[i]][[j]]])/
+              sum(bond_fut$discretized_rnd$rnd)
+          }
+          prob_2[[i]] <- unlist(prob_2[[i]])
+        }
 
-        prob_2 <- round(unlist(prob_2), 3)
+        prob_2_own_ctd <- list()
+        for (i in 1:length(prob_2)){
+          prob_2_own_ctd[[i]] <- prob_2[[i]][conf_2_unique[[i]] == i]
+        }
 
-        probas_2 <- data.frame(ISIN = c(deliv_bonds$ISIN[ctd_pot_2], deliv_bonds$ISIN[-ctd_pot_2]),
-                               proba_ctd_max_irr = c(prob_2, rep(0, length(deliv_bonds$ISIN[-ctd_pot_2])))) %>%
+        prob_2_own_ctd[lengths(prob_2_own_ctd) == 0] <- 0
+
+        bond_option_value_2 <- mapply("-", ctd_fwd_price, bond_price_mean_2, SIMPLIFY = F)
+
+        bond_option_value_2 <- pmax(0, unlist(bond_option_value_2))
+
+        option_value_2 <- sum(unlist(mapply("*", bond_option_value_2, prob_2_own_ctd, SIMPLIFY = F)))
+
+        probas_2 <- data.frame(ISIN = deliv_bonds$ISIN, proba_ctd_max_irr = round(unlist(prob_2_own_ctd), 3)) %>%
           arrange(desc(proba_ctd_max_irr))
 
         proba_all = left_join(probas, probas_2, by = "ISIN")
 
-        return(proba_all)
+        option_all <- c(option_value, option_value_2)
+
+        option <- rbind(option_all, 100*option_all/unlist(fut_price)) %>% data.frame %>% rename_all(~c("min_net_basis", "max_irr"))
+        rownames(option) <- c("price in currency", "price in % of futures")
+
+        return(list( probas = proba_all, option_value = option))
 
       } else {message("impossible to retrieve the probabilities to be CtD")}
     } else {message("input dates are not consistent")}

@@ -56,9 +56,9 @@ proba_ctd_irr(
 
 \item{r}{a number for the riskfree spot rate whose maturity is equal to the options' maturity, in numeric format}
 
-\item{r_2}{a number for the spot repo funding rate of the underlying bond, with maturity equal to the options' maturity, in numeric format}
+\item{r_2}{a number for the spot repo funding rate of the underlying bond, with maturity equal to the options' maturity (by default, the General Collateral repo rate of the jurisdiction), in numeric format}
 
-\item{r_3}{a number for the spot repo funding rate of the underlying bond, with maturity equal to the futures' maturity, in numeric format}
+\item{r_3}{a number for the spot repo funding rate of the underlying bond, with maturity equal to the futures' maturity (by default, the General Collateral repo rate of the jurisdiction), in numeric format}
 
 \item{day_count_conv}{a number for the day count convention, 1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360, in numeric format}
 
@@ -99,7 +99,7 @@ proba_ctd_irr(
 \item{term_stir}{a number for the term to maturity, in months, of the STIR at observation date, in numeric format}
 }
 \value{
-for the bonds in the delivery basket, their ISIN in character format and their probability of being the CtD bond at options' maturity based on each deliverable bond's joint distribution of bond yield and repo rate, in numeric format
+for the bonds in the delivery basket, their ISIN in character format and their probability of being the CtD bond at options' maturity based on each deliverable bond's joint distribution of bond yield and repo rate, in numeric format. If a timing option is embedded in the futures contract it is here ignored.
 }
 \description{
 proba_ctd_irr

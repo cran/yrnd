@@ -51,7 +51,6 @@
 #' "EUR")
 #' }
 #'
-
 bond_future_price <- function(call_prices, call_strikes, put_prices, put_strikes, nb_log, r, day_count_conv, cot,
                               ctd_matu, fut_price, fut_matu, option_matu, start_date, nationality = NA, currency = NA){
 

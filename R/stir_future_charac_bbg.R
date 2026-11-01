@@ -12,7 +12,6 @@
 #' \dontrun{
 #' stir_future_charac_bbg(c("FFU24", "ERM6"))
 #' }
-
 stir_future_charac_bbg <- function(bbg_tickers){
 
   blpConnect()

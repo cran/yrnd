@@ -344,7 +344,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(yrnd)</span></code></pre></div>
 <div id="yrnd" class="section level2">
 <h2>yrnd</h2>
-<p>The package ‘“yrnd”’ estimates a parametric form of the Risk Neutral
+<p>The package “yrnd” estimates a parametric form of the Risk Neutral
 Density (RND) of the price of fixed-income futures such as Short Term
 Interest Rates futures and government bond futures, using options
 written on those futures. The RND is estimated at options’ maturity for
@@ -357,21 +357,22 @@ functions. First, it provides with the distribution of the STIR rate and
 the government bond yield themselves at options’ maturity, using the RND
 of respectively the STIR futures price and the bond futures price. Then,
 the package extracts in one go from options prices on bond futures two
-RNDs at options’ maturity: the RND of the cheapest-to-deliver bond yield
-and the RND of the ctd repo rate. Then, the packages provides with the
-probability attached to each bond in the delivery basket of a government
-bond futures contract to be the cheapest to deliver at options’
-maturity, either from the observation of the expected net basis
+RNDs at options’ maturity: the RND of the cheapest-to-deliver (ctd) bond
+yield and the RND of the ctd repo rate. Then, the packages provides with
+the probability attached to each bond in the delivery basket of a
+government bond futures contract to be the cheapest to deliver at
+options’ maturity, either from the observation of the expected net basis
 distribution by bond at options’ maturity, or from the observation of
 the implied repo rate distribution by bond at options’ maturity. The
-package also provides with the probability attached to each bond to be
-the cheapest at futures’ maturity. It also provides with the non
-parametric RND of the bond yield spread between two issuers or two
-maturities, using RNDs on two bond futures with the same maturity date
-and a Gaussian copula. At last, the package provides with functions to
-extract from Bloomberg interest rate futures contracts characteristics,
-options prices on interest futures and major characteristics of the
-bonds in the delivery basket of a government bond futures contract.</p>
+package also quantifies the value of the quality option embedded in bond
+futures contract. It also provides with the non parametric RND of either
+the bond yield spread or the bond repo rate spread between two issuers
+or two maturities, using RNDs on two bond futures with the same maturity
+date and a Gaussian copula. At last, the package provides with functions
+to extract from Bloomberg interest rate futures contracts
+characteristics, options prices on interest futures and major
+characteristics of the bonds in the delivery basket of a government bond
+futures contract.</p>
 </div>
 <div id="stir_future_price-provides-with-the-risk-neutral-density-at-options-maturity-of-the-stir-futures-price-using-options-on-the-stir-futures" class="section level2">
 <h2>stir_future_price provides with the risk neutral density at options’
@@ -773,12 +774,13 @@ of the repo asset price in the optimization phase.</h2>
 #&gt; [41]  7.374650125  7.871526242  8.368995910  8.866952872  9.365311591
 #&gt; [46]  9.864000949 10.862141435</code></pre>
 </div>
-<div id="proba_ctd_opt-calculates-for-each-bond-in-the-delivery-basket-of-a-government-bond-futures-contact-its-probability-to-be-the-cheapest-to-deliver-bond-at-options-maturity-relying-successively-on-a-ranking-of-the-net-basis-and-on-a-raking-of-the-implied-repo-rate-of-each-bond-in-the-delivery-basket-at-options-maturity" class="section level2">
+<div id="proba_ctd_opt-calculates-for-each-bond-in-the-delivery-basket-of-a-government-bond-futures-contact-its-probability-to-be-the-cheapest-to-deliver-bond-at-options-maturity-relying-successively-on-a-ranking-of-the-net-basis-and-on-a-ranking-of-the-implied-repo-rate-of-each-bond-in-the-delivery-basket-at-options-maturity.-it-also-quantifies-the-value-of-the-quality-option-of-the-futures-contract." class="section level2">
 <h2>proba_ctd_opt calculates, for each bond in the delivery basket of a
 government bond futures contact, its probability to be the cheapest to
 deliver bond at options’ maturity, relying successively on a ranking of
-the net basis and on a raking of the implied repo rate of each bond in
-the delivery basket at options’ maturity</h2>
+the net basis and on a ranking of the implied repo rate of each bond in
+the delivery basket at options’ maturity. It also quantifies the value
+of the quality option of the futures contract.</h2>
 <div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">proba_ctd_opt</span>( <span class="fu">c</span>(<span class="fl">24.10</span>, <span class="fl">23.10</span>, <span class="fl">22.12</span>, <span class="fl">21.12</span>, <span class="fl">20.12</span>, <span class="fl">19.14</span>, <span class="fl">18.14</span>, <span class="fl">17.16</span>, <span class="fl">16.18</span>, <span class="fl">15.20</span>,</span>
 <span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="fl">14.22</span>, <span class="fl">13.24</span>, <span class="fl">12.28</span>, <span class="fl">11.32</span>, <span class="fl">10.36</span>, <span class="fl">9.44</span>, <span class="fl">8.50</span>, <span class="fl">7.60</span>, <span class="fl">6.72</span>, <span class="fl">5.86</span>, <span class="fl">5.04</span>, <span class="fl">4.28</span>,</span>
 <span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="fl">3.56</span>, <span class="fl">2.88</span>, <span class="fl">2.30</span>, <span class="fl">1.78</span>,  <span class="fl">1.36</span>, <span class="fl">1.02</span>, <span class="fl">0.76</span>, <span class="fl">0.56</span>, <span class="fl">0.42</span>, <span class="fl">0.30</span>, <span class="fl">0.22</span>, <span class="fl">0.18</span>, <span class="fl">0.14</span>,</span>
@@ -806,13 +808,20 @@ the delivery basket at options’ maturity</h2>
 <span id="cb11-25"><a href="#cb11-25" tabindex="-1"></a><span class="dv">100</span>,</span>
 <span id="cb11-26"><a href="#cb11-26" tabindex="-1"></a><span class="fu">c</span>(<span class="fl">0.361698</span>, <span class="fl">0.641260</span>, <span class="fl">0.641260</span>, <span class="fl">0.750372</span>, <span class="fl">0.809987</span>),</span>
 <span id="cb11-27"><a href="#cb11-27" tabindex="-1"></a><span class="fu">c</span>(<span class="fl">0.03500</span>, <span class="fl">0.03507</span>, <span class="fl">0.03492</span>, <span class="fl">0.03510</span>, <span class="fl">0.03514</span>),</span>
-<span id="cb11-28"><a href="#cb11-28" tabindex="-1"></a><span class="dv">2</span>)</span>
-<span id="cb11-29"><a href="#cb11-29" tabindex="-1"></a><span class="co">#&gt;           ISIN proba_ctd_min_net_basis proba_ctd_max_irr</span></span>
-<span id="cb11-30"><a href="#cb11-30" tabindex="-1"></a><span class="co">#&gt; 1 DE000BU2D004                   0.586             0.586</span></span>
-<span id="cb11-31"><a href="#cb11-31" tabindex="-1"></a><span class="co">#&gt; 2 DE000BU2D012                   0.354             0.355</span></span>
-<span id="cb11-32"><a href="#cb11-32" tabindex="-1"></a><span class="co">#&gt; 3 DE0001102572                   0.060             0.059</span></span>
-<span id="cb11-33"><a href="#cb11-33" tabindex="-1"></a><span class="co">#&gt; 4 DE0001102614                   0.000             0.000</span></span>
-<span id="cb11-34"><a href="#cb11-34" tabindex="-1"></a><span class="co">#&gt; 5 DE0001030757                   0.000             0.000</span></span></code></pre></div>
+<span id="cb11-28"><a href="#cb11-28" tabindex="-1"></a><span class="dv">2</span>,</span>
+<span id="cb11-29"><a href="#cb11-29" tabindex="-1"></a><span class="fu">as.Date</span>(<span class="st">&quot;2026-09-08&quot;</span>))</span>
+<span id="cb11-30"><a href="#cb11-30" tabindex="-1"></a><span class="co">#&gt; $probas</span></span>
+<span id="cb11-31"><a href="#cb11-31" tabindex="-1"></a><span class="co">#&gt;           ISIN proba_ctd_min_net_basis proba_ctd_max_irr</span></span>
+<span id="cb11-32"><a href="#cb11-32" tabindex="-1"></a><span class="co">#&gt; 1 DE000BU2D004                   0.550             0.550</span></span>
+<span id="cb11-33"><a href="#cb11-33" tabindex="-1"></a><span class="co">#&gt; 2 DE000BU2D012                   0.259             0.259</span></span>
+<span id="cb11-34"><a href="#cb11-34" tabindex="-1"></a><span class="co">#&gt; 3 DE0001102572                   0.191             0.191</span></span>
+<span id="cb11-35"><a href="#cb11-35" tabindex="-1"></a><span class="co">#&gt; 4 DE0001102614                   0.000             0.000</span></span>
+<span id="cb11-36"><a href="#cb11-36" tabindex="-1"></a><span class="co">#&gt; 5 DE0001030757                   0.000             0.000</span></span>
+<span id="cb11-37"><a href="#cb11-37" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-38"><a href="#cb11-38" tabindex="-1"></a><span class="co">#&gt; $option_value</span></span>
+<span id="cb11-39"><a href="#cb11-39" tabindex="-1"></a><span class="co">#&gt;                       min_net_basis   max_irr</span></span>
+<span id="cb11-40"><a href="#cb11-40" tabindex="-1"></a><span class="co">#&gt; price in currency         1.0447039 1.0475287</span></span>
+<span id="cb11-41"><a href="#cb11-41" tabindex="-1"></a><span class="co">#&gt; price in % of futures     0.9575654 0.9601546</span></span></code></pre></div>
 </div>
 
 

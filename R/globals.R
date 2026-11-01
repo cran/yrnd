@@ -8,4 +8,4 @@ utils::globalVariables(c("stub_1", "stub_2", "plain_months", "price", "stub_1_re
                          "day_count_conv_prov", "matu", "proba_ctd_matu", "res_term", ".",
                          "asset_1", "asset_2", "asset", "day_count_conv", "spread", "ctry", "F_0",
                          "option_matu", "repo", "bond", "proba", "proba_ctd_max_irr",
-                         "proba_ctd_min_net_basis"))
+                         "proba_ctd_min_net_basis", "inter_cp", "repo_1", "repo_2"))

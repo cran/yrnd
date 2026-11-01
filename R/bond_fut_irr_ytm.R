@@ -9,8 +9,8 @@
 #' @param stir_put_prices a vector of put prices on the same STIR futures, in numeric format
 #' @param stir_put_strikes a vector of put strikes attached to the put prices, in numeric format
 #' @param r a number for the riskfree spot rate whose maturity is equal to the options' maturity, in numeric format
-#' @param r_2 a number for the spot repo funding rate of the underlying bond, with maturity equal to the options' maturity, in numeric format
-#' @param r_3 a number for the spot repo funding rate of the underlying bond, with maturity equal to the futures' maturity, in numeric format
+#' @param r_2 a number for the spot repo funding rate of the underlying bond, with maturity equal to the options' maturity (by default, the General Collateral repo rate of the jurisdiction), in numeric format
+#' @param r_3 a number for the spot repo funding rate of the underlying bond, with maturity equal to the futures' maturity (by default, the General Collateral repo rate of the jurisdiction), in numeric format
 #' @param day_count_conv a number for the day count convention, 1 for ACT/ACT, 2 for ACT/360, 3 for ACT/365 and 4 for 30/360, in numeric format
 #' @param cot_bond a number for the bond options' style, 1 for European options, 2 for American options and 3 for American options with futures-style margin, in numeric format
 #' @param bond_fut_price a number for the bond futures' price on calibration date, in numeric format
@@ -31,7 +31,7 @@
 #' @param currency a character for the currency in which the futures contract and the options are traded, in character format (NA by default)
 #' @param term_stir a number for the term to maturity, in months, of the STIR at observation date, in numeric format
 #'
-#' @returns the parameters (means, standard deviations and weight in the first component lognormal law) of respectively the RND of the bond price and the RND of the bond repo asset price at options' maturity, the mean, standard deviation, skewness, kurtosis, mode, quantiles of order 0.1%, 0.5%, 1%, 5%, 10%, 25%, 50%, 75%, 90%, 95%, 99%, 99.5% and 99.9% of respectively the bond yield and the bond repo rate distributions in numeric format, the discretized domain and associated RND values of respectively the bond yield to maturity and of the bond repo rate at options' maturity, in numeric format, the RND and CDF plots of respectively the bond yield to maturity and the bond repo rate at options' maturity,  the correlation coefficient between the bond price and the bond repo asset price at options' maturity, the convergence, with 0 indicating successful convergence, in numeric format, the options' prices predicted by the model, in numeric format
+#' @returns for the cheapest to deliver bond of the futures contract, the parameters (means, standard deviations and weight in the first component lognormal law) of respectively the RND of the bond price and the RND of the bond repo asset price at options' maturity, the mean, standard deviation, skewness, kurtosis, mode, quantiles of order 0.1%, 0.5%, 1%, 5%, 10%, 25%, 50%, 75%, 90%, 95%, 99%, 99.5% and 99.9% of respectively the bond yield and the bond repo rate distributions in numeric format, the discretized domain and associated RND values of respectively the bond yield to maturity and of the bond repo rate at options' maturity, in numeric format, the RND and CDF plots of respectively the bond yield to maturity and the bond repo rate at options' maturity,  the correlation coefficient between the bond price and the bond repo asset price at options' maturity, the convergence, with 0 indicating successful convergence, in numeric format, the options' prices predicted by the model, in numeric format
 #' @export
 #' @importFrom stats approx constrOptim density dlnorm plnorm pnorm
 #' @importFrom utils head tail
@@ -111,9 +111,9 @@ bond_fut_irr_ytm <- function(bond_call_prices, bond_call_strikes, bond_put_price
      length(bond_fut_price) == 1 & length(bond_cp) == 1 & length(bond_cp_f) == 1 &
      length(bond_conv_factor) == 1 & length(sett) == 1 & length(bond_matu) == 1 &
      length(bond_fut_matu) == 1 & length(bond_option_matu) == 1 & length(cot_stir) == 1 &
-     length(stir_fut_price) == 1 & length(stir_fut_matu) == 1 & length(stir_option_matu) &
-     length(start_date) == 1 & length(country) == 1 & length(currency) == 1 & length(term_stir) &
-     length(stir_call_prices) > 1 & length(stir_call_strikes) > 1 & length(stir_put_prices) > 1&
+     length(stir_fut_price) == 1 & length(stir_fut_matu) == 1 & length(stir_option_matu) == 1 &
+     length(start_date) == 1 & length(country) == 1 & length(currency) == 1 & length(term_stir) == 1 &
+     length(stir_call_prices) > 1 & length(stir_call_strikes) > 1 & length(stir_put_prices) > 1 &
      length(stir_put_strikes) > 1 & length(bond_call_prices) > 1 & length(bond_call_strikes) > 1 &
      length(bond_put_prices) > 1 & length(bond_put_strikes) > 1){
 
@@ -128,559 +128,562 @@ bond_fut_irr_ytm <- function(bond_call_prices, bond_call_strikes, bond_put_price
 
     if( abs(as.numeric(stir_option_matu) - as.numeric(bond_charac_2$option_matu)) < 30){
 
-      if(bond_charac_2$start_date < bond_charac_2$option_matu & bond_charac_2$option_matu <= bond_charac_2$fut_matu){
+      if(bond_charac_2$option_matu <= bond_charac_2$fut_matu - 15){
 
-        nb_log <- 2
+        if(bond_charac_2$start_date < bond_charac_2$option_matu ){
 
-        bond_fut_rnd <- bond_future_price(bond_call_prices, bond_call_strikes, bond_put_prices, bond_put_strikes,
-                                          nb_log, r, day_count_conv, cot_bond, bond_matu, bond_fut_price,
-                                          bond_fut_matu, bond_option_matu, start_date, country, currency)
+          nb_log <- 2
 
-        stir_fut_rnd <- stir_future_price(stir_call_prices, stir_call_strikes, stir_put_prices,
-                                          stir_put_strikes, nb_log, r, day_count_conv, cot_stir,
-                                          stir_fut_price, stir_fut_matu, stir_option_matu, start_date,
-                                          currency)
+          bond_fut_rnd <- bond_future_price(bond_call_prices, bond_call_strikes, bond_put_prices, bond_put_strikes,
+                                            nb_log, r, day_count_conv, cot_bond, bond_matu, bond_fut_price,
+                                            bond_fut_matu, bond_option_matu, start_date, country, currency)
 
-        marginal_bond <- marginal_repo <- ""
+          stir_fut_rnd <- stir_future_price(stir_call_prices, stir_call_strikes, stir_put_prices,
+                                            stir_put_strikes, nb_log, r, day_count_conv, cot_stir,
+                                            stir_fut_price, stir_fut_matu, stir_option_matu, start_date,
+                                            currency)
 
-        if(length(bond_fut_rnd) > 0 & length(stir_fut_rnd) > 0){
+          marginal_bond <- marginal_repo <- ""
 
-          bond_charac_2 <- bond_charac_2 %>%
-            mutate(prev_cp_dt = as.Date(paste0(format(option_matu, "%Y"), "-", format(bond_matu, "%m-%d"))))
+          if(length(bond_fut_rnd) > 0 & length(stir_fut_rnd) > 0){
 
-          if(bond_charac_2$cp_f == 1){bond_fut <- bond_charac_2 %>%
-            mutate_at("prev_cp_dt", ~as.Date(ifelse(option_matu < ., . %m-% years(1), .))) %>%
-            mutate(curr_cp_dt = prev_cp_dt %m+% years(1), next_cp_dt = curr_cp_dt %m+% years(1))
-          } else { bond_fut <- bond_charac_2 %>%
-            mutate_at("prev_cp_dt", ~as.Date(ifelse(option_matu - . < - months(6), . %m-% years(1),
-                                                    ifelse(option_matu - . < 0, . %m-% months(6), .)))) %>%
-            mutate(curr_cp_dt = prev_cp_dt %m+% months(6), next_cp_dt = curr_cp_dt %m+% months(6))}
+            bond_charac_2 <- bond_charac_2 %>%
+              mutate(prev_cp_dt = as.Date(paste0(format(option_matu, "%Y"), "-", format(bond_matu, "%m-%d"))))
 
-          if(day_count_conv == 1){
-            bond_fut <- bond_fut %>% mutate(option_term = as.numeric(option_matu - start_date)/
-                                              as.numeric(ceiling_date(option_matu, "year") - floor_date(start_date, "year")),
-                                            res_term = as.numeric(fut_matu - option_matu)/
-                                              as.numeric(ceiling_date(fut_matu, "year") - floor_date(option_matu, "year") ))
-          } else if(day_count_conv == 2){
-            bond_fut <- bond_fut %>% mutate(option_term = as.numeric(option_matu - start_date)/360,
-                                            res_term = as.numeric(fut_matu - option_matu)/360)
-          } else if(day_count_conv == 3){
-            bond_fut <- bond_fut %>% mutate(option_term =as.numeric(option_matu - start_date)/365,
-                                            res_term = as.numeric(fut_matu - option_matu)/365)
-          } else {
-            bond_fut <- bond_fut %>% mutate(stub_1 = max(0, 30 - as.numeric(format(start_date, "%d"))),
-                                            stub_2 = min(30, as.numeric(format(option_matu, "%d"))),
-                                            plain_months = round((as.numeric(floor_date(option_matu, "months") -
-                                                                               ceiling_date(start_date, "months")))/30),
-                                            option_term = (stub_1 + stub_2 + plain_months*30)/360,
-                                            stub_1_res = max(0, 30 - as.numeric(format(option_matu + sett, "%d"))),
-                                            stub_2_res = min(30, as.numeric(format(fut_matu, "%d"))),
-                                            plain_months_res = round(as.numeric(floor_date(fut_matu, "months") -
-                                                                                  ceiling_date(option_matu + sett, "months") )/30),
-                                            res_term = (stub_1_res + stub_2_res + max(0, plain_months_res)*30)/360)}
+            if(bond_charac_2$cp_f == 1){bond_fut <- bond_charac_2 %>%
+              mutate_at("prev_cp_dt", ~as.Date(ifelse(option_matu < ., . %m-% years(1), .))) %>%
+              mutate(curr_cp_dt = prev_cp_dt %m+% years(1), next_cp_dt = curr_cp_dt %m+% years(1))
+            } else { bond_fut <- bond_charac_2 %>%
+              mutate_at("prev_cp_dt", ~as.Date(ifelse(option_matu - . < - months(6), . %m-% years(1),
+                                                      ifelse(option_matu - . < 0, . %m-% months(6), .)))) %>%
+              mutate(curr_cp_dt = prev_cp_dt %m+% months(6), next_cp_dt = curr_cp_dt %m+% months(6))}
 
-          bond_fut <- bond_fut %>% mutate(res_term_2 = 0)
-
-          rate_table <- data.frame(term = bond_fut$option_term + c(0, bond_fut$res_term), rates = c(r_2, r_3)) %>%
-            mutate(d_fact = term*rates)
-          fwd_1 <- diff(rate_table$d_fact)/diff(rate_table$term)
-
-          if(bond_fut$fut_matu < bond_fut$curr_cp_dt){
             if(day_count_conv == 1){
-              bond_fut <- bond_fut %>% mutate(acc_matu = bond_fut$Nomi*bond_cp*as.numeric(fut_matu - prev_cp_dt - sett)/
-                                                as.numeric(ceiling_date(fut_matu, "year") - floor_date(fut_matu, "year") ))
-            } else if(day_count_conv == 2) {
-              bond_fut <- bond_fut %>% mutate(acc_matu = bond_fut$Nomi*bond_cp*as.numeric(fut_matu - prev_cp_dt - sett)/360)
+              bond_fut <- bond_fut %>% mutate(option_term = as.numeric(option_matu - start_date)/
+                                                as.numeric(ceiling_date(option_matu, "year") - floor_date(start_date, "year")),
+                                              res_term = as.numeric(fut_matu - option_matu)/
+                                                as.numeric(ceiling_date(fut_matu, "year") - floor_date(option_matu, "year") ))
+            } else if(day_count_conv == 2){
+              bond_fut <- bond_fut %>% mutate(option_term = as.numeric(option_matu - start_date)/360,
+                                              res_term = as.numeric(fut_matu - option_matu)/360)
             } else if(day_count_conv == 3){
-              bond_fut <- bond_fut %>% mutate(acc_matu = bond_fut$Nomi*bond_cp*as.numeric(fut_matu - prev_cp_dt - sett)/365)
-            } else{
-              bond_fut <- bond_fut %>% mutate(stub_1 = max(0, 30 - as.numeric(format(prev_cp_dt + sett, "%d"))),
-                                              stub_2 = min(30, as.numeric(format(fut_matu, "%d"))),
-                                              plain_months = round(as.numeric(floor_date(fut_matu, "months") -
-                                                                                ceiling_date(prev_cp_dt + sett, "months") )/30),
-                                              acc_matu = bond_fut$Nomi*bond_cp/360*(stub_2 + stub_1 + max(0, plain_months)*30)) }
-          } else{
-            if(day_count_conv == 1){
-              bond_fut <- bond_fut %>% mutate(res_term_2 = as.numeric(fut_matu - curr_cp_dt - sett)/
-                                                as.numeric(ceiling_date(fut_matu, "year") - floor_date(fut_matu, "year") ),
-                                              acc_matu = bond_fut$Nomi*bond_cp*res_term_2 )
-            } else if(day_count_conv == 2) {
-              bond_fut <- bond_fut %>% mutate(res_term_2 = as.numeric(fut_matu - curr_cp_dt - sett)/360,
-                                              acc_matu = bond_fut$Nomi*bond_cp*res_term_2)
-            } else if(day_count_conv == 3){
-              bond_fut <- bond_fut %>% mutate(res_term_2 = as.numeric(fut_matu - curr_cp_dt - sett)/365,
-                                              acc_matu = bond_fut$Nomi*bond_cp*res_term_2)
-            } else{
-              bond_fut <- bond_fut %>% mutate(stub_1 = max(0, 30 - as.numeric(format(curr_cp_dt + sett, "%d"))),
-                                              stub_2 = min(30, as.numeric(format(fut_matu, "%d"))),
-                                              plain_months = round(as.numeric(floor_date(fut_matu, "months") -
-                                                                                ceiling_date(curr_cp_dt + sett, "months") )/30),
-                                              res_term_2 = (stub_1 + stub_2 + max(0, plain_months)*30)/360,
-                                              acc_matu = bond_fut$Nomi*bond_cp*res_term_2)}
-          }
+              bond_fut <- bond_fut %>% mutate(option_term =as.numeric(option_matu - start_date)/365,
+                                              res_term = as.numeric(fut_matu - option_matu)/365)
+            } else {
+              bond_fut <- bond_fut %>% mutate(stub_1 = max(0, 30 - as.numeric(format(start_date, "%d"))),
+                                              stub_2 = min(30, as.numeric(format(option_matu, "%d"))),
+                                              plain_months = round((as.numeric(floor_date(option_matu, "months") -
+                                                                                 ceiling_date(start_date, "months")))/30),
+                                              option_term = (stub_1 + stub_2 + plain_months*30)/360,
+                                              stub_1_res = max(0, 30 - as.numeric(format(option_matu + sett, "%d"))),
+                                              stub_2_res = min(30, as.numeric(format(fut_matu, "%d"))),
+                                              plain_months_res = round(as.numeric(floor_date(fut_matu, "months") -
+                                                                                    ceiling_date(option_matu + sett, "months") )/30),
+                                              res_term = (stub_1_res + stub_2_res + max(0, plain_months_res)*30)/360)}
 
-          if(bond_fut$cp_f == 1){ true_cp_dt <- seq(from = bond_fut$curr_cp_dt, to = bond_fut$bond_matu, by = "year")
-          } else { true_cp_dt <- seq(from = bond_fut$curr_cp_dt, to = bond_fut$bond_matu, by = "quarter")
-          true_cp_dt <- true_cp_dt[seq(1, length(true_cp_dt), by = 2)] }
-          true_cp_dt <- c(head(true_cp_dt, -1) + bond_fut$sett, tail(true_cp_dt, 1))
-          true_cp_dt <- c(bond_fut$option_matu, true_cp_dt)
+            bond_fut <- bond_fut %>% mutate(res_term_2 = 0)
 
-          if(day_count_conv == 1){
-            if(bond_fut$cp_f == 1){ stub <- as.numeric(diff(head(true_cp_dt, 2)))/
-              as.numeric(bond_fut$curr_cp_dt - bond_fut$prev_cp_dt)
-            } else {stub <- as.numeric(diff(head(true_cp_dt, 2)))/
-              as.numeric(ceiling_date(bond_fut$prev_cp_dt + sett, "year") - floor_date(bond_fut$prev_cp_dt + sett, "year")) }
-            cp_dt_2 <- stub + c(0, seq(1, length(true_cp_dt) - 2)/bond_fut$cp_f)
-          } else if(day_count_conv == 2){ cp_dt_2 <- tail(as.numeric(true_cp_dt - first(true_cp_dt)), -1)/360
-          } else if(day_count_conv == 3){ cp_dt_2 <- tail(as.numeric(true_cp_dt - first(true_cp_dt)), -1)/365
-          } else {stub <- (max(0, 30 - as.numeric(format(true_cp_dt[1], "%d"))) +
-                             as.numeric(round((floor_date(true_cp_dt[2], "months") - ceiling_date(true_cp_dt[1], "months"))/30))*30 +
-                             min(30, as.numeric(format(true_cp_dt[2], "%d"))))/360
-          cp_dt_2 <- stub + c(0, seq(1, length(true_cp_dt) - 2)/bond_fut$cp_f)}
+            rate_table <- data.frame(term = bond_fut$option_term + c(0, bond_fut$res_term), rates = c(r_2, r_3)) %>%
+              mutate(d_fact = term*rates)
+            fwd_1 <- diff(rate_table$d_fact)/diff(rate_table$term)
 
-          cp_dt_2 <- list(list(cp_dt_2))
-          cf_matu <- bond_fut$Nomi*(1 + bond_fut$bond_cp/bond_fut$cp_f)
-          cf_other <- split(rep(bond_fut$bond_cp/bond_fut$cp_f*bond_fut$Nomi, sapply(cp_dt_2, lengths) - 1),
-                            rep(seq_along(cp_dt_2), sapply(cp_dt_2, lengths) - 1))
-
-          esp <- function(x){exp(x[1] + x[2] + 0.5*(x[3]^2 + x[4]^2 + 2*prod(x[3:5]) )  )}
-
-          esp_mix <- function(x){
-            esp_mix <- x[9]*x[10]*esp(x[c(1, 3, 5, 7, 11)]) +
-              x[9]*(1 - x[10])*esp(x[c(1, 4, 5, 8, 12)]) +
-              (1 - x[9])*x[10]*esp(x[c(2, 3, 6, 7, 13)]) +
-              (1 - x[9])*(1 - x[10])*esp(x[c(2, 4, 6, 8, 14)])
-          }
-
-          put <- function(x, KP){
-            sigma <- x[3]^2 + x[4]^2 + 2*prod(x[3:5])
-            d1_C <- (x[1] + x[2] + sigma - log(KP))/sqrt(sigma )
-            d2_C <- d1_C - sqrt(sigma)
-            put <- -esp(x)*pnorm(-d1_C) + KP*pnorm(-d2_C)
-            if(cot_bond %in%c(1, 2)){put <- exp(-r*T)*put
-            } else{put <- put}
-          }
-
-          put_mix <- function(x, KP){
-            put_mix <- x[9]*x[10]*put(x[c(1, 3, 5, 7, 11)], KP) +
-              x[9]*(1 - x[10])*put(x[c(1, 4, 5, 8, 12)], KP) +
-              (1 - x[9])*x[10]*put(x[c(2, 3, 6, 7, 13)], KP) +
-              (1 - x[9])*(1 - x[10])*put(x[c(2, 4, 6, 8, 14)], KP)
-          }
-
-          call <- function(x, KC){
-            sigma <- x[3]^2 + x[4]^2 + 2*prod(x[3:5])
-            d1_C <- (x[1] + x[2] + sigma - log(KC))/sqrt(sigma)
-            d2_C <- d1_C - sqrt(sigma)
-            call <- esp(x)*pnorm(d1_C) - KC*pnorm(d2_C)
-            if(cot_bond %in%c(1, 2)){call <- exp(-r*T)*call
-            } else{call <- call}
-          }
-
-          call_mix <- function(x, KC){
-            call_mix <- x[9]*x[10]*call(x[c(1, 3, 5, 7, 11)], KC) +
-              x[9]*(1 - x[10])*call(x[c(1, 4, 5, 8, 12)], KC) +
-              (1 - x[9])*x[10]*call(x[c(2, 3, 6, 7, 13)], KC) +
-              (1 - x[9])*(1 - x[10])*call(x[c(2, 4, 6, 8, 14)], KC)
-          }
-
-          PR <- matrix(seq(0.01, 0.99, 0.03), ncol = 1)
-
-          if(cot_bond %in%c(1, 3)){
-            model_prices <- function(x){
-              return(list(model_call_price = call_mix(x, KC),
-                          model_put_price = put_mix(x, KP)))}
-          } else {model_prices <- function(x){
-            C_INF <- pmax(esp_mix(x) - KC, call_mix(x, KC))
-            C_SUP <- exp(r*T)*call_mix(x, KC)
-            P_INF <- pmax(KP - esp_mix(x), put_mix(x, KP))
-            P_SUP <- exp(r*T)*put_mix(x, KP)
-            itm_fwd_call <- as.numeric(KC <= esp_mix(x))
-            itm_fwd_put <- as.numeric(KP >= esp_mix(x))
-            w_call <- itm_fwd_call*first(tail(x, 2)) + (1 - itm_fwd_call)*last(x)
-            w_put <- itm_fwd_put*first(tail(x, 2)) + (1 - itm_fwd_put)*last(x)
-            CALL <- w_call*C_INF + (1 - w_call)*C_SUP
-            PUT <- w_put*P_INF + (1 - w_put)*P_SUP
-            return(list(model_call_price = CALL, model_put_price = PUT))}
-          }
-
-          allc <- bond_fut$acc_matu + bond_fut$bond_cp*bond_fut$Nomi/bond_fut$cp_f*
-            max(0, as.numeric(bond_fut$fut_matu - bond_fut$curr_cp_dt))
-          C <- bond_fut$conv_factor*bond_call_prices
-          P <- bond_fut$conv_factor*bond_put_prices
-          KC <- bond_fut$conv_factor*bond_call_strikes + allc
-          KP <- bond_fut$conv_factor*bond_put_strikes + allc
-          T <- bond_fut$option_term
-          FWD <- bond_fut$fut_price
-          fwd_term <- bond_fut$res_term
-          FWD_r <- exp(fwd_1*fwd_term)
-          FWD_b <- (bond_fut$conv_factor*FWD + allc)/FWD_r
-
-          esp_a_mix <- function(x){
-            esp_a_mix <- x[5]*exp(x[1] + (x[3]^2)/2 ) + (1 - x[5])*exp(x[2] + (x[4]^2)/2 )
-          }
-
-          var_mix <- function(x){
-            var_mix <- x[5]*exp(2*x[1] + 2*x[3]^2) + (1 - x[5])*exp(2*x[2] + 2*x[4]^2) - esp_a_mix(x)^2
-          }
-
-          MSE_mix <- function(x){
-            MSE_mix <- sum((C - model_prices(x)$model_call_price)^2, na.rm = T) +
-              sum((P - model_prices(x)$model_put_price)^2, na.rm = T) +
-              length(P)*(FWD_r - esp_a_mix(x[c(3, 4, 7, 8, 10)]))^2  +
-              length(P)*(FWD_b - esp_a_mix(x[c(1, 2, 5, 6, 9)]))^2
-            return(MSE_mix)}
-
-          w_b <- bond_fut_rnd$params[5]
-
-          volat_bond <- as.numeric(sqrt(w_b*bond_fut_rnd$params[3]^2 + (1 - w_b)*bond_fut_rnd$params[4]^2 +
-                                          (1 - w_b)*w_b*(diff(bond_fut_rnd$params[1:2]) )^2 ))
-
-          m1 <- m2 <- s1 <- s2 <- rho_1 <- rho_2 <- rho_3 <- rho_4 <- SCE <- NA
-          m3 <- m4 <- log(FWD_r)
-          s3 <- s4 <- sqrt(12/term_stir)*(bond_fut$res_term^(3/2))/100*
-            as.numeric(stir_fut_rnd$moments[2])
-          pi1_r <- 0.5
-
-          PARA <- as.matrix(data.frame(m1, m2, m3, m4, s1, s2, s3, s4, pi1_b = PR[, 1], pi1_r,
-                                       rho_1, rho_2, rho_3, rho_4, w1 = 0, w2 = 0, SCE))
-
-          if(FWD_b != 1){
-            lower <- c( rep(c( (sign(1 - FWD_b)*0.2 + 1)*log(FWD_b), 0.5*volat_bond), each = nb_log),
-                        rep(-1 + 1e-6, 2*nb_log), rep(1e-6, 2) )
-            upper <- c( rep(c( (sign(FWD_b - 1)*0.2 + 1)*log(FWD_b), 2*volat_bond), each = nb_log),
-                        rep(1 - 1e-6, 2*nb_log), rep(1 - 1e-6, 2) )
-          } else {
-            lower <- c( rep( c(-5*1e-4,  0.5*volat_bond), each = nb_log), rep(-1 + 1e-6, 2*nb_log), rep(1e-6, 2) )
-            upper <- c( rep( c(1.5*1e-3, 2*volat_bond), each = nb_log), rep(1 - 1e-6, 2*nb_log), rep(1 - 1e-6, 2) )
-          }
-
-          objective <- function(x){
-            if(cot_bond %in% c(1, 3)){
-              MSE_mix( c(x[1:2], m3, m4, x[3:4], s3, s4, PR[i, 1], pi1_r, x[5:8] ))
-            } else{MSE_mix( c(x[1:2], m3, m4, x[3:4], s3, s4, PR[i, 1], pi1_r, x[5:10] )) }
-          }
-
-          set.seed(123)
-
-          suppressWarnings({
-            for (i in 1:nrow(PR)){
-              if(cot_bond %in%c(1,3)){
-                sol <- DEoptim(objective, lower[1:(length(lower) - 2)], upper = upper[1:(length(upper) - 2)],
-                               DEoptim.control(trace = FALSE, NP = 80, itermax = 100))
-                PARA[i, c("m1", "m2", "s1", "s2", "rho_1", "rho_2", "rho_3", "rho_4")] <-
-                  sol$optim$bestmem
+            if(bond_fut$fut_matu < bond_fut$curr_cp_dt){
+              if(day_count_conv == 1){
+                bond_fut <- bond_fut %>% mutate(acc_matu = bond_fut$Nomi*bond_cp*as.numeric(fut_matu - prev_cp_dt - sett)/
+                                                  as.numeric(ceiling_date(fut_matu, "year") - floor_date(fut_matu, "year") ))
+              } else if(day_count_conv == 2) {
+                bond_fut <- bond_fut %>% mutate(acc_matu = bond_fut$Nomi*bond_cp*as.numeric(fut_matu - prev_cp_dt - sett)/360)
+              } else if(day_count_conv == 3){
+                bond_fut <- bond_fut %>% mutate(acc_matu = bond_fut$Nomi*bond_cp*as.numeric(fut_matu - prev_cp_dt - sett)/365)
               } else{
-                sol <- DEoptim(objective, lower, upper = upper,
-                               DEoptim.control(trace = FALSE, NP = 120, itermax = 100))
-                PARA[i, c("m1", "m2", "s1", "s2", "rho_1", "rho_2", "rho_3", "rho_4",
-                          "w1", "w2")] <- sol$optim$bestmem }
-              PARA[i, "SCE"] <- sol$optim$bestval
+                bond_fut <- bond_fut %>% mutate(stub_1 = max(0, 30 - as.numeric(format(prev_cp_dt + sett, "%d"))),
+                                                stub_2 = min(30, as.numeric(format(fut_matu, "%d"))),
+                                                plain_months = round(as.numeric(floor_date(fut_matu, "months") -
+                                                                                  ceiling_date(prev_cp_dt + sett, "months") )/30),
+                                                acc_matu = bond_fut$Nomi*bond_cp/360*(stub_2 + stub_1 + max(0, plain_months)*30)) }
+            } else{
+              if(day_count_conv == 1){
+                bond_fut <- bond_fut %>% mutate(res_term_2 = as.numeric(fut_matu - curr_cp_dt - sett)/
+                                                  as.numeric(ceiling_date(fut_matu, "year") - floor_date(fut_matu, "year") ),
+                                                acc_matu = bond_fut$Nomi*bond_cp*res_term_2 )
+              } else if(day_count_conv == 2) {
+                bond_fut <- bond_fut %>% mutate(res_term_2 = as.numeric(fut_matu - curr_cp_dt - sett)/360,
+                                                acc_matu = bond_fut$Nomi*bond_cp*res_term_2)
+              } else if(day_count_conv == 3){
+                bond_fut <- bond_fut %>% mutate(res_term_2 = as.numeric(fut_matu - curr_cp_dt - sett)/365,
+                                                acc_matu = bond_fut$Nomi*bond_cp*res_term_2)
+              } else{
+                bond_fut <- bond_fut %>% mutate(stub_1 = max(0, 30 - as.numeric(format(curr_cp_dt + sett, "%d"))),
+                                                stub_2 = min(30, as.numeric(format(fut_matu, "%d"))),
+                                                plain_months = round(as.numeric(floor_date(fut_matu, "months") -
+                                                                                  ceiling_date(curr_cp_dt + sett, "months") )/30),
+                                                res_term_2 = (stub_1 + stub_2 + max(0, plain_months)*30)/360,
+                                                acc_matu = bond_fut$Nomi*bond_cp*res_term_2)}
             }
-          })
 
-          PARA <- PARA[ !is.na(PARA[, "m1"]), ]
-          if(nrow(PARA) > 1){
-            param <- PARA[which.min(PARA[, "SCE"]), -ncol(PARA)]
-          } else {param <- as.matrix(PARA[, -ncol(PARA)], nrow = nrow(PARA))}
+            if(bond_fut$cp_f == 1){ true_cp_dt <- seq(from = bond_fut$curr_cp_dt, to = bond_fut$bond_matu, by = "year")
+            } else { true_cp_dt <- seq(from = bond_fut$curr_cp_dt, to = bond_fut$bond_matu, by = "quarter")
+            true_cp_dt <- true_cp_dt[seq(1, length(true_cp_dt), by = 2)] }
+            true_cp_dt <- c(head(true_cp_dt, -1) + bond_fut$sett, tail(true_cp_dt, 1))
+            true_cp_dt <- c(bond_fut$option_matu, true_cp_dt)
 
-          param[param == 0] <- 1e-4
+            if(day_count_conv == 1){
+              if(bond_fut$cp_f == 1){ stub <- as.numeric(diff(head(true_cp_dt, 2)))/
+                as.numeric(bond_fut$curr_cp_dt - bond_fut$prev_cp_dt)
+              } else {stub <- as.numeric(diff(head(true_cp_dt, 2)))/
+                as.numeric(ceiling_date(bond_fut$prev_cp_dt + sett, "year") - floor_date(bond_fut$prev_cp_dt + sett, "year")) }
+              cp_dt_2 <- stub + c(0, seq(1, length(true_cp_dt) - 2)/bond_fut$cp_f)
+            } else if(day_count_conv == 2){ cp_dt_2 <- tail(as.numeric(true_cp_dt - first(true_cp_dt)), -1)/360
+            } else if(day_count_conv == 3){ cp_dt_2 <- tail(as.numeric(true_cp_dt - first(true_cp_dt)), -1)/365
+            } else {stub <- (max(0, 30 - as.numeric(format(true_cp_dt[1], "%d"))) +
+                               as.numeric(round((floor_date(true_cp_dt[2], "months") - ceiling_date(true_cp_dt[1], "months"))/30))*30 +
+                               min(30, as.numeric(format(true_cp_dt[2], "%d"))))/360
+            cp_dt_2 <- stub + c(0, seq(1, length(true_cp_dt) - 2)/bond_fut$cp_f)}
 
-          L <- U <- rep(0, length(param))
+            cp_dt_2 <- list(list(cp_dt_2))
+            cf_matu <- bond_fut$Nomi*(1 + bond_fut$bond_cp/bond_fut$cp_f)
+            cf_other <- split(rep(bond_fut$bond_cp/bond_fut$cp_f*bond_fut$Nomi, sapply(cp_dt_2, lengths) - 1),
+                              rep(seq_along(cp_dt_2), sapply(cp_dt_2, lengths) - 1))
 
-          L[sign(param) == -1] <- 1.1*param[sign(param) == -1]
-          L[sign(param) == 1] <- 0.9*param[sign(param) == 1]
-          U[sign(param) == -1] <- 0.9*param[sign(param) == -1]
-          U[sign(param) == 1] <- 1.1*param[sign(param) == 1]
+            esp <- function(x){exp(x[1] + x[2] + 0.5*(x[3]^2 + x[4]^2 + 2*prod(x[3:5]) )  )}
 
-          if(cot_bond%in%c(1, 3)){
-            L <- L[1: (length(L) - 2)]
-            U <- U[1: (length(U) - 2)]
-          } else{ U[(length(U) - 1):length(U)] <- pmin(U[(length(U) - 1):length(U)], 1)
-          L[(length(L) - 1):length(L)] <- pmax(L[(length(L) - 1):length(L)], 0)}
+            esp_mix <- function(x){
+              esp_mix <- x[9]*x[10]*esp(x[c(1, 3, 5, 7, 11)]) +
+                x[9]*(1 - x[10])*esp(x[c(1, 4, 5, 8, 12)]) +
+                (1 - x[9])*x[10]*esp(x[c(2, 3, 6, 7, 13)]) +
+                (1 - x[9])*(1 - x[10])*esp(x[c(2, 4, 6, 8, 14)])
+            }
 
-          L[9] <- max(0, L[9])
-          U[9] <- min(1, U[9])
-          L[10] <- 0
-          U[10] <- 1
-          L[11:14] <- pmax(-1, L[11:14])
-          U[11:14] <- pmin(1, U[11:14])
+            put <- function(x, KP){
+              sigma <- x[3]^2 + x[4]^2 + 2*prod(x[3:5])
+              d1_C <- (x[1] + x[2] + sigma - log(KP))/sqrt(sigma )
+              d2_C <- d1_C - sqrt(sigma)
+              put <- -esp(x)*pnorm(-d1_C) + KP*pnorm(-d2_C)
+              if(cot_bond %in%c(1, 2)){put <- exp(-r*T)*put
+              } else{put <- put}
+            }
 
-          CI <- c(L, -U)
-          UI <- rbind(diag(length(L)), -diag(length(L)))
+            put_mix <- function(x, KP){
+              put_mix <- x[9]*x[10]*put(x[c(1, 3, 5, 7, 11)], KP) +
+                x[9]*(1 - x[10])*put(x[c(1, 4, 5, 8, 12)], KP) +
+                (1 - x[9])*x[10]*put(x[c(2, 3, 6, 7, 13)], KP) +
+                (1 - x[9])*(1 - x[10])*put(x[c(2, 4, 6, 8, 14)], KP)
+            }
 
-          if(cot_bond%in%c(1, 3)){
-            param <- param[1: (length(param) - 2)]
-          } else{param <- param }
+            call <- function(x, KC){
+              sigma <- x[3]^2 + x[4]^2 + 2*prod(x[3:5])
+              d1_C <- (x[1] + x[2] + sigma - log(KC))/sqrt(sigma)
+              d2_C <- d1_C - sqrt(sigma)
+              call <- esp(x)*pnorm(d1_C) - KC*pnorm(d2_C)
+              if(cot_bond %in%c(1, 2)){call <- exp(-r*T)*call
+              } else{call <- call}
+            }
 
-          param <- matrix(param)
+            call_mix <- function(x, KC){
+              call_mix <- x[9]*x[10]*call(x[c(1, 3, 5, 7, 11)], KC) +
+                x[9]*(1 - x[10])*call(x[c(1, 4, 5, 8, 12)], KC) +
+                (1 - x[9])*x[10]*call(x[c(2, 3, 6, 7, 13)], KC) +
+                (1 - x[9])*(1 - x[10])*call(x[c(2, 4, 6, 8, 14)], KC)
+            }
 
-          suppressWarnings({
-            solu <- constrOptim(param, MSE_mix, NULL, ui = UI, ci = CI, control = list(maxit = 5000),
-                                mu = 1e-5, method = "Nelder-Mead")
-          })
+            PR <- matrix(seq(0.01, 0.99, 0.03), ncol = 1)
 
-          model_p <- mapply("/", model_prices(c(solu$par)), bond_fut$conv_factor, SIMPLIFY = F)
+            if(cot_bond %in%c(1, 3)){
+              model_prices <- function(x){
+                return(list(model_call_price = call_mix(x, KC),
+                            model_put_price = put_mix(x, KP)))}
+            } else {model_prices <- function(x){
+              C_INF <- pmax(esp_mix(x) - KC, call_mix(x, KC))
+              C_SUP <- exp(r*T)*call_mix(x, KC)
+              P_INF <- pmax(KP - esp_mix(x), put_mix(x, KP))
+              P_SUP <- exp(r*T)*put_mix(x, KP)
+              itm_fwd_call <- as.numeric(KC <= esp_mix(x))
+              itm_fwd_put <- as.numeric(KP >= esp_mix(x))
+              w_call <- itm_fwd_call*first(tail(x, 2)) + (1 - itm_fwd_call)*last(x)
+              w_put <- itm_fwd_put*first(tail(x, 2)) + (1 - itm_fwd_put)*last(x)
+              CALL <- w_call*C_INF + (1 - w_call)*C_SUP
+              PUT <- w_put*P_INF + (1 - w_put)*P_SUP
+              return(list(model_call_price = CALL, model_put_price = PUT))}
+            }
 
-          if(cot_bond%in%c(1,3) ){ params <- solu$par
-          } else {params <- solu$par[1: (length(solu$par) - 2)]}
+            allc <- bond_fut$acc_matu + bond_fut$bond_cp*bond_fut$Nomi/bond_fut$cp_f*
+              max(0, as.numeric(bond_fut$fut_matu - bond_fut$curr_cp_dt))
+            C <- bond_fut$conv_factor*bond_call_prices
+            P <- bond_fut$conv_factor*bond_put_prices
+            KC <- bond_fut$conv_factor*bond_call_strikes + allc
+            KP <- bond_fut$conv_factor*bond_put_strikes + allc
+            T <- bond_fut$option_term
+            FWD <- bond_fut$fut_price
+            fwd_term <- bond_fut$res_term
+            FWD_r <- exp(fwd_1*fwd_term)
+            FWD_b <- (bond_fut$conv_factor*FWD + allc)/FWD_r
 
-          marginal_bond <- params[which(colnames(PARA)%in%c("m1", "m2","s1", "s2", "pi1_b"))]
-          marginal_repo <- params[which(colnames(PARA)%in%c("m3", "m4","s3", "s4", "pi1_r"))]
+            esp_a_mix <- function(x){
+              esp_a_mix <- x[5]*exp(x[1] + (x[3]^2)/2 ) + (1 - x[5])*exp(x[2] + (x[4]^2)/2 )
+            }
 
-          correl <- (esp_mix(params) - esp_a_mix(marginal_repo)*esp_a_mix(marginal_bond))/
-            sqrt(var_mix(marginal_repo)*var_mix(marginal_bond))
+            var_mix <- function(x){
+              var_mix <- x[5]*exp(2*x[1] + 2*x[3]^2) + (1 - x[5])*exp(2*x[2] + 2*x[4]^2) - esp_a_mix(x)^2
+            }
 
-          sub <- function(x, y){ x[3]*dlnorm(y, meanlog = x[1], sdlog = x[2]) }
-          PDF <- function(x, y){
-            return(sub(x[c(1, 3, 5)], y) + sub(c(x[c(2, 4)], 1 - x[5]), y) ) }
+            MSE_mix <- function(x){
+              MSE_mix <- sum((C - model_prices(x)$model_call_price)^2, na.rm = T) +
+                sum((P - model_prices(x)$model_put_price)^2, na.rm = T) +
+                length(P)*(FWD_r - esp_a_mix(x[c(3, 4, 7, 8, 10)]))^2  +
+                length(P)*(FWD_b - esp_a_mix(x[c(1, 2, 5, 6, 9)]))^2
+              return(MSE_mix)}
 
-          sub_2 <- function(x, y){ x[3]*plnorm(y, meanlog = x[1], sdlog = x[2]) }
-          CDF <- function(x, y){
-            return(sub_2(x[c(1, 3, 5)], y) + sub_2(c(x[c(2, 4)], 1 - x[5]), y) )}
+            w_b <- bond_fut_rnd$params[5]
 
-          range_px_B <- range(c(KP, KC)/FWD_r)
-          PX_B <- Reduce(seq, 1e3*range_px_B)*1e-3
-          DNR_B <- PDF(marginal_bond, PX_B)
+            volat_bond <- as.numeric(sqrt(w_b*bond_fut_rnd$params[3]^2 + (1 - w_b)*bond_fut_rnd$params[4]^2 +
+                                            (1 - w_b)*w_b*(diff(bond_fut_rnd$params[1:2]) )^2 ))
 
-          esp_r <- esp_a_mix(marginal_repo)
-          std_r <- sqrt(var_mix(marginal_repo))
-          step_r <- std_r/300
-          PX_r <- seq(esp_r - std_r, esp_r + std_r, step_r)
-          range_px_r <- range(PX_r)
-          DNR_r <- PDF(marginal_repo, PX_r)
+            m1 <- m2 <- s1 <- s2 <- rho_1 <- rho_2 <- rho_3 <- rho_4 <- SCE <- NA
+            m3 <- m4 <- log(FWD_r)
+            s3 <- s4 <- sqrt(12/term_stir)*(bond_fut$res_term^(3/2))/100*
+              as.numeric(stir_fut_rnd$moments[2])
+            pi1_r <- 0.5
 
-          repo <- bond <- ""
+            PARA <- as.matrix(data.frame(m1, m2, m3, m4, s1, s2, s3, s4, pi1_b = PR[, 1], pi1_r,
+                                         rho_1, rho_2, rho_3, rho_4, w1 = 0, w2 = 0, SCE))
 
-          thres <- c(0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 0.90, 0.95, 0.99, 0.995, 0.999)
+            if(FWD_b != 1){
+              lower <- c( rep(c( (sign(1 - FWD_b)*0.2 + 1)*log(FWD_b), 0.5*volat_bond), each = nb_log),
+                          rep(-1 + 1e-6, 2*nb_log), rep(1e-6, 2) )
+              upper <- c( rep(c( (sign(FWD_b - 1)*0.2 + 1)*log(FWD_b), 2*volat_bond), each = nb_log),
+                          rep(1 - 1e-6, 2*nb_log), rep(1 - 1e-6, 2) )
+            } else {
+              lower <- c( rep( c(-5*1e-4,  0.5*volat_bond), each = nb_log), rep(-1 + 1e-6, 2*nb_log), rep(1e-6, 2) )
+              upper <- c( rep( c(1.5*1e-3, 2*volat_bond), each = nb_log), rep(1 - 1e-6, 2*nb_log), rep(1 - 1e-6, 2) )
+            }
 
-          if(sum(rollmean(DNR_r, 2)*diff(PX_r), na.rm = T) < 1){
+            objective <- function(x){
+              if(cot_bond %in% c(1, 3)){
+                MSE_mix( c(x[1:2], m3, m4, x[3:4], s3, s4, PR[i, 1], pi1_r, x[5:8] ))
+              } else{MSE_mix( c(x[1:2], m3, m4, x[3:4], s3, s4, PR[i, 1], pi1_r, x[5:10] )) }
+            }
 
-            x_axis <- 1e-2
-            PX_r_2 <- PX_r
-            range_px_r_2 <- range_px_r
-            ratio <- 1
-            while (ratio > 1e-5){
-              integral <- sum(rollmean(PDF(marginal_repo, PX_r_2), 2)*diff(PX_r_2), na.rm = T)
-              range_px_r_2 <- c(1 - x_axis, 1)*range_px_r_2
-              PX_r_2 <- seq(min(range_px_r_2), max(range_px_r_2), step_r)
-              integral_2 <- sum(rollmean(PDF(marginal_repo, PX_r_2), 2)*diff(PX_r_2), na.rm = T)
-              ratio <- integral_2 - integral}
+            set.seed(123)
 
-            ratio <- 1
-            while (ratio > 1e-5){
-              integral <- sum(rollmean(PDF(marginal_repo, PX_r_2), 2)*diff(PX_r_2), na.rm = T)
-              range_px_r_2 <- c(1, 1 + x_axis)*range_px_r_2
-              PX_r_2 <- seq(min(range_px_r_2), max(range_px_r_2), step_r)
-              integral_2 <- sum(rollmean(PDF(marginal_repo, PX_r_2), 2)*diff(PX_r_2), na.rm = T)
-              ratio <- integral_2 - integral}
+            suppressWarnings({
+              for (i in 1:nrow(PR)){
+                if(cot_bond %in%c(1,3)){
+                  sol <- DEoptim(objective, lower[1:(length(lower) - 2)], upper = upper[1:(length(upper) - 2)],
+                                 DEoptim.control(trace = FALSE, NP = 80, itermax = 100))
+                  PARA[i, c("m1", "m2", "s1", "s2", "rho_1", "rho_2", "rho_3", "rho_4")] <-
+                    sol$optim$bestmem
+                } else{
+                  sol <- DEoptim(objective, lower, upper = upper,
+                                 DEoptim.control(trace = FALSE, NP = 120, itermax = 100))
+                  PARA[i, c("m1", "m2", "s1", "s2", "rho_1", "rho_2", "rho_3", "rho_4",
+                            "w1", "w2")] <- sol$optim$bestmem }
+                PARA[i, "SCE"] <- sol$optim$bestval
+              }
+            })
 
-            while (sum(rollmean(PDF(marginal_repo, PX_r_2), 2)*diff(PX_r_2), na.rm = T) < 0.9991){
-              range_px_r_2 <- c(1 - x_axis, 1 + x_axis)*range_px_r_2
-              PX_r_2 <- seq(min(range_px_r_2), max(range_px_r_2), step_r)}
+            PARA <- PARA[ !is.na(PARA[, "m1"]), ]
+            if(nrow(PARA) > 1){
+              param <- PARA[which.min(PARA[, "SCE"]), -ncol(PARA)]
+            } else {param <- as.matrix(PARA[, -ncol(PARA)], nrow = nrow(PARA))}
 
-            DNR_2_r <- PDF(marginal_repo, PX_r_2)
-            NCDF_r <- CDF(marginal_repo, PX_r_2)
+            param[param == 0] <- 1e-4
 
-            if(DNR_2_r[1] <= DNR_2_r[2] &
-               DNR_2_r[length(DNR_2_r) - 1] >= DNR_2_r[length(DNR_2_r)] &
-               min(DNR_2_r)%in%DNR_2_r[c(1, length(DNR_2_r))]){
+            L <- U <- rep(0, length(param))
 
-              repo_rate <- function(x){repo_rate <- exp(x*fwd_term)}
+            L[sign(param) == -1] <- 1.1*param[sign(param) == -1]
+            L[sign(param) == 1] <- 0.9*param[sign(param) == 1]
+            U[sign(param) == -1] <- 0.9*param[sign(param) == -1]
+            U[sign(param) == 1] <- 1.1*param[sign(param) == 1]
 
-              PX_r_3 <- log(PX_r_2)/fwd_term
+            if(cot_bond%in%c(1, 3)){
+              L <- L[1: (length(L) - 2)]
+              U <- U[1: (length(U) - 2)]
+            } else{ U[(length(U) - 1):length(U)] <- pmin(U[(length(U) - 1):length(U)], 1)
+            L[(length(L) - 1):length(L)] <- pmax(L[(length(L) - 1):length(L)], 0)}
 
-              sub_r <- function(x, y){
-                x[3]*dlnorm( repo_rate(y[-1]), meanlog = x[1], sdlog = x[2])*diff(repo_rate(y))/diff(y)  }
+            L[9] <- max(0, L[9])
+            U[9] <- min(1, U[9])
+            L[10] <- 0
+            U[10] <- 1
+            L[11:14] <- pmax(-1, L[11:14])
+            U[11:14] <- pmin(1, U[11:14])
 
-              PDF_r <- function(x, y){
-                return(sub_r(x[c(1, 3, 5)], y) + sub_r(c(x[c(2, 4)], 1 - x[5]), y) ) }
+            CI <- c(L, -U)
+            UI <- rbind(diag(length(L)), -diag(length(L)))
 
-              DNR_repo <- PDF_r(marginal_repo, PX_r_3)
+            if(cot_bond%in%c(1, 3)){
+              param <- param[1: (length(param) - 2)]
+            } else{param <- param }
 
-              remove <- which(is.na(DNR_repo))
+            param <- matrix(param)
 
-              if(length(remove) > 0){
-                PX_r_4 <- PX_r_3[-remove]
-                DNR_repo_2 <- DNR_repo[-remove]
-              } else { PX_r_4 <- PX_r_3
-              DNR_repo_2 <- DNR_repo}
+            suppressWarnings({
+              solu <- constrOptim(param, MSE_mix, NULL, ui = UI, ci = CI, control = list(maxit = 5000),
+                                  mu = 1e-5, method = "Nelder-Mead")
+            })
 
-              df_r <- data.frame(price = PX_r_4[-1], density = DNR_repo_2)
-              cdf_r <- data.frame(price = PX_r_4[-c(1, 2)], cdf = cumsum(rollmean(DNR_repo_2, 2)*diff(PX_r_4[-1])))
+            model_p <- mapply("/", model_prices(c(solu$par)), bond_fut$conv_factor, SIMPLIFY = F)
 
-              if(length(which(cdf_r$cdf > last(thres))) > 0 & length(which(cdf_r$cdf < first(thres))) > 0){
+            if(cot_bond%in%c(1,3) ){ params <- solu$par
+            } else {params <- solu$par[1: (length(solu$par) - 2)]}
 
-                quantiles <- list()
-                for (j in 1:length(thres)){
-                  quantiles[[j]] <- mean(df_r$price[c(min(which(cdf_r$cdf > thres[j] - 1e-3)),
-                                                      max(which(cdf_r$cdf < thres[j] + 1e-3)))])}
+            marginal_bond <- params[which(colnames(PARA)%in%c("m1", "m2","s1", "s2", "pi1_b"))]
+            marginal_repo <- params[which(colnames(PARA)%in%c("m3", "m4","s3", "s4", "pi1_r"))]
 
-                qt_r <- data.frame(quantiles) %>% rename_with(~paste0("q", 100*thres))
+            correl <- (esp_mix(params) - esp_a_mix(marginal_repo)*esp_a_mix(marginal_bond))/
+              sqrt(var_mix(marginal_repo)*var_mix(marginal_bond))
 
-                E_r <- sum(rollmean(PX_r_4[-1]*DNR_repo_2, 2)*diff(PX_r_4[-1]))
-                moments_r <- function(x){ return(sum(rollmean(DNR_repo_2*(PX_r_4[-1] - E_r)^x , 2)*diff(PX_r_4[-1])))}
-                SD_r <- sqrt(moments_r(2))
-                SK_r <- moments_r(3)/SD_r^3
-                KU_r <- moments_r(4)/SD_r^4
-                moments_r <- c(mean = E_r, stddev = SD_r, skewness = SK_r, kurtosis = KU_r)
-                mode_r <- PX_r_4[which.max(DNR_repo_2)]
+            sub <- function(x, y){ x[3]*dlnorm(y, meanlog = x[1], sdlog = x[2]) }
+            PDF <- function(x, y){
+              return(sub(x[c(1, 3, 5)], y) + sub(c(x[c(2, 4)], 1 - x[5]), y) ) }
 
-                graph <- PX_r_4 >= qt_r$q0.1 & PX_r_4 <= qt_r$q99.9
-                PX_graph_repo <- PX_r_4[graph]
-                DNR_graph_repo <- DNR_repo_2[graph]
-                NCDF_graph_repo <- cdf_r$cdf[graph]
-                df_graph_repo <- data.frame(rate = PX_graph_repo, density = DNR_graph_repo)
-                cdf_graph_repo <- data.frame(rate = PX_graph_repo, cdf = NCDF_graph_repo)
+            sub_2 <- function(x, y){ x[3]*plnorm(y, meanlog = x[1], sdlog = x[2]) }
+            CDF <- function(x, y){
+              return(sub_2(x[c(1, 3, 5)], y) + sub_2(c(x[c(2, 4)], 1 - x[5]), y) )}
 
-                pdf_r <- ggplot() + geom_line(data = df_graph_repo, aes(x = rate, y = density)) +
-                  labs(x = paste0("repo rate (%) from ", bond_charac_2$option_matu,
-                                  " to ", bond_charac_2$fut_matu),
-                       y = "probability density") + theme_bw() +
-                  theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
-                  labs(title = paste0("Implied repo rate on ", country, " ", 100*bond_cp, "% ", bond_matu),
-                       subtitle = paste0("RND for a mixture of ", nb_log, " lognormals, ",
-                                         bond_charac_2$start_date)) +
-                  scale_x_continuous(labels = scales::percent)
+            range_px_B <- range(c(KP, KC)/FWD_r)
+            PX_B <- Reduce(seq, 1e3*range_px_B)*1e-3
+            DNR_B <- PDF(marginal_bond, PX_B)
 
-                ncdf_r <- ggplot() + geom_line(data = cdf_graph_repo, aes(x = rate, y = cdf)) +
-                  labs(x = paste0("repo rate (%) from ", bond_charac_2$option_matu,
-                                  " to ", bond_charac_2$fut_matu),
-                       y = "cumulative probability") + theme_bw() +
-                  theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
-                  labs(title =  paste0("Implied repo rate on ", country, " ", 100*bond_cp, "% ", bond_matu),
-                       subtitle = paste0("Risk Neutral Cumulative Probability for a mixture of ",
-                                         nb_log, " lognormals")) +
-                  scale_x_continuous(labels = scales::percent)
+            esp_r <- esp_a_mix(marginal_repo)
+            std_r <- sqrt(var_mix(marginal_repo))
+            step_r <- std_r/300
+            PX_r <- seq(esp_r - std_r, esp_r + std_r, step_r)
+            range_px_r <- range(PX_r)
+            DNR_r <- PDF(marginal_repo, PX_r)
 
-                repo = list(moments_repo = moments_r, mode_repo = mode_r, qt_repo = qt_r,
-                            discretized_rnd_repo = tibble(domain = PX_graph_repo, rnd = DNR_graph_repo),
-                            rnd_plot_repo = pdf_r, cdf_plot_repo = ncdf_r)
+            repo <- bond <- ""
 
+            thres <- c(0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 0.90, 0.95, 0.99, 0.995, 0.999)
+
+            if(sum(rollmean(DNR_r, 2)*diff(PX_r), na.rm = T) < 1){
+
+              x_axis <- 1e-2
+              PX_r_2 <- PX_r
+              range_px_r_2 <- range_px_r
+              ratio <- 1
+              while (ratio > 1e-5){
+                integral <- sum(rollmean(PDF(marginal_repo, PX_r_2), 2)*diff(PX_r_2), na.rm = T)
+                range_px_r_2 <- c(1 - x_axis, 1)*range_px_r_2
+                PX_r_2 <- seq(min(range_px_r_2), max(range_px_r_2), step_r)
+                integral_2 <- sum(rollmean(PDF(marginal_repo, PX_r_2), 2)*diff(PX_r_2), na.rm = T)
+                ratio <- integral_2 - integral}
+
+              ratio <- 1
+              while (ratio > 1e-5){
+                integral <- sum(rollmean(PDF(marginal_repo, PX_r_2), 2)*diff(PX_r_2), na.rm = T)
+                range_px_r_2 <- c(1, 1 + x_axis)*range_px_r_2
+                PX_r_2 <- seq(min(range_px_r_2), max(range_px_r_2), step_r)
+                integral_2 <- sum(rollmean(PDF(marginal_repo, PX_r_2), 2)*diff(PX_r_2), na.rm = T)
+                ratio <- integral_2 - integral}
+
+              while (sum(rollmean(PDF(marginal_repo, PX_r_2), 2)*diff(PX_r_2), na.rm = T) < 0.9991){
+                range_px_r_2 <- c(1 - x_axis, 1 + x_axis)*range_px_r_2
+                PX_r_2 <- seq(min(range_px_r_2), max(range_px_r_2), step_r)}
+
+              DNR_2_r <- PDF(marginal_repo, PX_r_2)
+              NCDF_r <- CDF(marginal_repo, PX_r_2)
+
+              if(DNR_2_r[1] <= DNR_2_r[2] &
+                 DNR_2_r[length(DNR_2_r) - 1] >= DNR_2_r[length(DNR_2_r)] &
+                 min(DNR_2_r)%in%DNR_2_r[c(1, length(DNR_2_r))]){
+
+                repo_rate <- function(x){repo_rate <- exp(x*fwd_term)}
+
+                PX_r_3 <- log(PX_r_2)/fwd_term
+
+                sub_r <- function(x, y){
+                  x[3]*dlnorm( repo_rate(y[-1]), meanlog = x[1], sdlog = x[2])*diff(repo_rate(y))/diff(y)  }
+
+                PDF_r <- function(x, y){
+                  return(sub_r(x[c(1, 3, 5)], y) + sub_r(c(x[c(2, 4)], 1 - x[5]), y) ) }
+
+                DNR_repo <- PDF_r(marginal_repo, PX_r_3)
+
+                remove <- which(is.na(DNR_repo))
+
+                if(length(remove) > 0){
+                  PX_r_4 <- PX_r_3[-remove]
+                  DNR_repo_2 <- DNR_repo[-remove]
+                } else { PX_r_4 <- PX_r_3
+                DNR_repo_2 <- DNR_repo}
+
+                df_r <- data.frame(price = PX_r_4[-1], density = DNR_repo_2)
+                cdf_r <- data.frame(price = PX_r_4[-c(1, 2)], cdf = cumsum(rollmean(DNR_repo_2, 2)*diff(PX_r_4[-1])))
+
+                if(length(which(cdf_r$cdf > last(thres))) > 0 & length(which(cdf_r$cdf < first(thres))) > 0){
+
+                  quantiles <- list()
+                  for (j in 1:length(thres)){
+                    quantiles[[j]] <- mean(df_r$price[c(min(which(cdf_r$cdf > thres[j] - 1e-3)),
+                                                        max(which(cdf_r$cdf < thres[j] + 1e-3)))])}
+
+                  qt_r <- data.frame(quantiles) %>% rename_with(~paste0("q", 100*thres))
+
+                  E_r <- sum(rollmean(PX_r_4[-1]*DNR_repo_2, 2)*diff(PX_r_4[-1]))
+                  moments_r <- function(x){ return(sum(rollmean(DNR_repo_2*(PX_r_4[-1] - E_r)^x , 2)*diff(PX_r_4[-1])))}
+                  SD_r <- sqrt(moments_r(2))
+                  SK_r <- moments_r(3)/SD_r^3
+                  KU_r <- moments_r(4)/SD_r^4
+                  moments_r <- c(mean = E_r, stddev = SD_r, skewness = SK_r, kurtosis = KU_r)
+                  mode_r <- PX_r_4[which.max(DNR_repo_2)]
+
+                  graph <- PX_r_4 >= qt_r$q0.1 & PX_r_4 <= qt_r$q99.9
+                  PX_graph_repo <- PX_r_4[graph]
+                  DNR_graph_repo <- DNR_repo_2[graph]
+                  NCDF_graph_repo <- cdf_r$cdf[graph]
+                  df_graph_repo <- data.frame(rate = PX_graph_repo, density = DNR_graph_repo)
+                  cdf_graph_repo <- data.frame(rate = PX_graph_repo, cdf = NCDF_graph_repo)
+
+                  pdf_r <- ggplot() + geom_line(data = df_graph_repo, aes(x = rate, y = density)) +
+                    labs(x = paste0("repo rate (%) from ", bond_charac_2$option_matu,
+                                    " to ", bond_charac_2$fut_matu),
+                         y = "probability density") + theme_bw() +
+                    theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
+                    labs(title = paste0("Implied repo rate on ", country, " ", 100*bond_cp, "% ", bond_matu),
+                         subtitle = paste0("RND for a mixture of ", nb_log, " lognormals, ",
+                                           bond_charac_2$start_date)) +
+                    scale_x_continuous(labels = scales::percent)
+
+                  ncdf_r <- ggplot() + geom_line(data = cdf_graph_repo, aes(x = rate, y = cdf)) +
+                    labs(x = paste0("repo rate (%) from ", bond_charac_2$option_matu,
+                                    " to ", bond_charac_2$fut_matu),
+                         y = "cumulative probability") + theme_bw() +
+                    theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
+                    labs(title =  paste0("Implied repo rate on ", country, " ", 100*bond_cp, "% ", bond_matu),
+                         subtitle = paste0("Risk Neutral Cumulative Probability for a mixture of ",
+                                           nb_log, " lognormals")) +
+                    scale_x_continuous(labels = scales::percent)
+
+                  repo = list(moments_repo = moments_r, mode_repo = mode_r, qt_repo = qt_r,
+                              discretized_rnd_repo = tibble(domain = PX_graph_repo, rnd = DNR_graph_repo),
+                              rnd_plot_repo = pdf_r, cdf_plot_repo = ncdf_r)
+
+                }
               }
             }
+
+            if(sum(rollmean(PDF(marginal_bond, PX_B), 2)*diff(PX_B), na.rm = T) < 1){
+              x_axis <- 1e-2
+              PX_B_2 <- PX_B
+              range_px_b_2 <- range_px_B
+              ratio <- 1
+              while (ratio > 1e-5){
+                integral <- sum(rollmean(PDF(marginal_bond, PX_B_2), 2)*diff(PX_B_2), na.rm = T)
+                range_px_b_2 <- c(1 - x_axis, 1)*range_px_b_2
+                PX_B_2 <- Reduce(seq, 1e3*range_px_b_2)*1e-3
+                integral_2 <- sum(rollmean(PDF(marginal_bond, PX_B_2), 2)*diff(PX_B_2), na.rm = T)
+                ratio <- integral_2 - integral}
+
+              ratio <- 1
+              while (ratio > 1e-5){
+                integral <- sum(rollmean(PDF(marginal_bond, PX_B_2), 2)*diff(PX_B_2), na.rm = T)
+                range_px_b_2 <- c(1, 1 + x_axis)*range_px_b_2
+                PX_B_2 <- Reduce(seq, 1e3*range_px_b_2)*1e-3
+                integral_2 <- sum(rollmean(PDF(marginal_bond, PX_B_2), 2)*diff(PX_B_2), na.rm = T)
+                ratio <- integral_2 - integral}
+
+              while (sum(rollmean(PDF(marginal_bond, PX_B_2), 2)*diff(PX_B_2), na.rm = T) < 0.9991){
+                range_px_b_2 <- c(1 - x_axis, 1 + x_axis)*range_px_b_2
+                PX_B_2 <- Reduce(seq, 1e3*range_px_b_2)*1e-3}
+
+              DNR_2 <- PDF(marginal_bond, PX_B_2)
+
+              NCDF <- CDF(marginal_bond, PX_B_2)
+
+              if(DNR_2[1] <= DNR_2[2] &
+                 DNR_2[length(DNR_2) - 1] >= DNR_2[length(DNR_2)] &
+                 min(DNR_2)%in%DNR_2[c(1, length(DNR_2))]){
+
+                dirty <- function(x){
+                  dcf <- mapply("/", list(c(unlist(cf_other), cf_matu)),
+                                mapply("^", 1 + x, list(unlist(cp_dt_2)), SIMPLIFY = F),
+                                SIMPLIFY = F)
+                  dirty <- unlist(lapply(dcf, sum))}
+
+                tri <- function(x){
+                  tri <- mapply(xirr, cf = mapply(c, -x, cf_other, cf_matu, SIMPLIFY = F),
+                                tau = mapply(c, 0, mapply(unlist, cp_dt_2, SIMPLIFY = F), SIMPLIFY = F) )
+                }
+
+                PX_B_3 <- rev(tri(PX_B_2))
+                sub_3 <- function(x, y){
+                  x[3]*dlnorm( dirty(y[-1]), meanlog = x[1], sdlog = x[2])*(-diff(dirty(y)))/diff(y) }
+
+                PDF_y <- function(x, y){
+                  return(sub_3(x[c(1, 3, 5)], y) + sub_3(c(x[c(2, 4)], 1 - x[5]), y) ) }
+
+                DNR_y <- PDF_y(marginal_bond, PX_B_3)
+                remove <- which(is.na(DNR_y))
+
+                if(length(remove) > 0){
+                  PX_B_4 <- PX_B_3[-remove]
+                  DNR_y_2 <- DNR_y[-remove]
+                } else { PX_B_4 <- PX_B_3
+                DNR_y_2 <- DNR_y}
+
+                df_y <- data.frame(price = PX_B_4[-1], density = DNR_y_2)
+                cdf_y <- data.frame(price = PX_B_4[-c(1,2)], cdf = cumsum(rollmean(DNR_y_2, 2)*diff(PX_B_4[-1])))
+
+                if(length(which(cdf_y$cdf > last(thres))) > 0 & length(which(cdf_y$cdf < first(thres))) > 0){
+
+                  quantiles <- list()
+                  for (j in 1:length(thres)){
+                    quantiles[[j]] <- mean(df_y$price[c(min(which(cdf_y$cdf > thres[j] - 1e-3)), max(which(cdf_y$cdf < thres[j] + 1e-3)))])}
+
+                  qt_y <- data.frame(quantiles) %>% rename_with(~paste0("q", 100*thres))
+
+                  E_y <- sum(rollmean(PX_B_4[-1]*DNR_y_2, 2)*diff(PX_B_4[-1]))
+                  moments_y <- function(x){ return(sum(rollmean(DNR_y_2*(PX_B_4[-1] - E_y)^x , 2)*diff(PX_B_4[-1])))}
+                  SD_y <- sqrt(moments_y(2))
+                  SK_y <- moments_y(3)/SD_y^3
+                  KU_y <- moments_y(4)/SD_y^4
+                  moments_y <- c(mean = E_y, stddev = SD_y, skewness = SK_y, kurtosis = KU_y)
+                  mode_y <- PX_B_4[which.max(DNR_y_2)]
+
+                  graph <- PX_B_4 >= qt_y$q0.1 & PX_B_4 <= qt_y$q99.9
+                  PX_graph <- PX_B_4[graph]
+                  DNR_graph <- DNR_y_2[graph]
+                  NCDF_graph <- cdf_y$cdf[graph]
+                  df_graph <- data.frame(price = PX_graph, density = DNR_graph)
+                  cdf_graph <- data.frame(price = PX_graph, cdf = NCDF_graph)
+
+                  pdf_y <- ggplot() + geom_line(data = df_graph, aes(x = price, y = density)) +
+                    labs(x = paste0("yield to maturity (%) on ", bond_charac_2$option_matu),
+                         y = "probability density") + theme_bw() +
+                    theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
+                    labs(title = paste0("Yield-to-maturity on ", country, " ", 100*bond_cp, "% ", bond_matu),
+                         subtitle = paste0("RND for a mixture of ", nb_log, " lognormals, ", bond_charac_2$start_date)) +
+                    scale_x_continuous(labels = scales::percent)
+
+                  ncdf_y <- ggplot() + geom_line(data = cdf_graph, aes(x = price, y = cdf)) +
+                    labs(x = paste0("Bond yield to maturity (%) on ", bond_charac_2$option_matu),
+                         y = "cumulative probability") + theme_bw() +
+                    theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
+                    labs(title = paste0("Yield-to-maturity on ", country, " ", 100*bond_cp, "% ", bond_matu),
+                         subtitle = paste0("Risk Neutral Cumulative Probability for a mixture of ",
+                                           nb_log, " lognormals")) +
+                    scale_x_continuous(labels = scales::percent)
+
+                  bond = list(moments_ytm = moments_y, mode_ytm = mode_y, qt_y = qt_y,
+                              discretized_rnd_ytm = tibble(domain = PX_graph, rnd = DNR_graph),
+                              rnd_plot_ytm = pdf_y, cdf_plot_ytm = ncdf_y)
+
+                }
+              }
+            }
+
+            if(length(repo)  == 0 ){ message("impossible to retrieve a density for the forward repo price")}
+            if(length(bond)  == 0 ){ message("impossible to retrieve a density for the forward bond price")}
+
+            all <- c(params_bond = data.frame(unlist(marginal_bond)),
+                     params_repo = data.frame(unlist(marginal_repo)),
+                     bond, repo, correl_b_r = correl, CV = solu$convergence, model_prices = model_p)
+            return(all)
+
           }
-
-          if(sum(rollmean(PDF(marginal_bond, PX_B), 2)*diff(PX_B), na.rm = T) < 1){
-            x_axis <- 1e-2
-            PX_B_2 <- PX_B
-            range_px_b_2 <- range_px_B
-            ratio <- 1
-            while (ratio > 1e-5){
-              integral <- sum(rollmean(PDF(marginal_bond, PX_B_2), 2)*diff(PX_B_2), na.rm = T)
-              range_px_b_2 <- c(1 - x_axis, 1)*range_px_b_2
-              PX_B_2 <- Reduce(seq, 1e3*range_px_b_2)*1e-3
-              integral_2 <- sum(rollmean(PDF(marginal_bond, PX_B_2), 2)*diff(PX_B_2), na.rm = T)
-              ratio <- integral_2 - integral}
-
-            ratio <- 1
-            while (ratio > 1e-5){
-              integral <- sum(rollmean(PDF(marginal_bond, PX_B_2), 2)*diff(PX_B_2), na.rm = T)
-              range_px_b_2 <- c(1, 1 + x_axis)*range_px_b_2
-              PX_B_2 <- Reduce(seq, 1e3*range_px_b_2)*1e-3
-              integral_2 <- sum(rollmean(PDF(marginal_bond, PX_B_2), 2)*diff(PX_B_2), na.rm = T)
-              ratio <- integral_2 - integral}
-
-            while (sum(rollmean(PDF(marginal_bond, PX_B_2), 2)*diff(PX_B_2), na.rm = T) < 0.9991){
-              range_px_b_2 <- c(1 - x_axis, 1 + x_axis)*range_px_b_2
-              PX_B_2 <- Reduce(seq, 1e3*range_px_b_2)*1e-3}
-
-            DNR_2 <- PDF(marginal_bond, PX_B_2)
-
-            NCDF <- CDF(marginal_bond, PX_B_2)
-
-            if(DNR_2[1] <= DNR_2[2] &
-               DNR_2[length(DNR_2) - 1] >= DNR_2[length(DNR_2)] &
-               min(DNR_2)%in%DNR_2[c(1, length(DNR_2))]){
-
-              dirty <- function(x){
-                dcf <- mapply("/", list(c(unlist(cf_other), cf_matu)),
-                              mapply("^", 1 + x, list(unlist(cp_dt_2)), SIMPLIFY = F),
-                              SIMPLIFY = F)
-                dirty <- unlist(lapply(dcf, sum))}
-
-              tri <- function(x){
-                tri <- mapply(xirr, cf = mapply(c, -x, cf_other, cf_matu, SIMPLIFY = F),
-                              tau = mapply(c, 0, mapply(unlist, cp_dt_2, SIMPLIFY = F), SIMPLIFY = F) )
-              }
-
-              PX_B_3 <- rev(tri(PX_B_2))
-              sub_3 <- function(x, y){
-                x[3]*dlnorm( dirty(y[-1]), meanlog = x[1], sdlog = x[2])*(-diff(dirty(y)))/diff(y) }
-
-              PDF_y <- function(x, y){
-                return(sub_3(x[c(1, 3, 5)], y) + sub_3(c(x[c(2, 4)], 1 - x[5]), y) ) }
-
-              DNR_y <- PDF_y(marginal_bond, PX_B_3)
-              remove <- which(is.na(DNR_y))
-
-              if(length(remove) > 0){
-                PX_B_4 <- PX_B_3[-remove]
-                DNR_y_2 <- DNR_y[-remove]
-              } else { PX_B_4 <- PX_B_3
-              DNR_y_2 <- DNR_y}
-
-              df_y <- data.frame(price = PX_B_4[-1], density = DNR_y_2)
-              cdf_y <- data.frame(price = PX_B_4[-c(1,2)], cdf = cumsum(rollmean(DNR_y_2, 2)*diff(PX_B_4[-1])))
-
-              if(length(which(cdf_y$cdf > last(thres))) > 0 & length(which(cdf_y$cdf < first(thres))) > 0){
-
-                quantiles <- list()
-                for (j in 1:length(thres)){
-                  quantiles[[j]] <- mean(df_y$price[c(min(which(cdf_y$cdf > thres[j] - 1e-3)), max(which(cdf_y$cdf < thres[j] + 1e-3)))])}
-
-                qt_y <- data.frame(quantiles) %>% rename_with(~paste0("q", 100*thres))
-
-                E_y <- sum(rollmean(PX_B_4[-1]*DNR_y_2, 2)*diff(PX_B_4[-1]))
-                moments_y <- function(x){ return(sum(rollmean(DNR_y_2*(PX_B_4[-1] - E_y)^x , 2)*diff(PX_B_4[-1])))}
-                SD_y <- sqrt(moments_y(2))
-                SK_y <- moments_y(3)/SD_y^3
-                KU_y <- moments_y(4)/SD_y^4
-                moments_y <- c(mean = E_y, stddev = SD_y, skewness = SK_y, kurtosis = KU_y)
-                mode_y <- PX_B_4[which.max(DNR_y_2)]
-
-                graph <- PX_B_4 >= qt_y$q0.1 & PX_B_4 <= qt_y$q99.9
-                PX_graph <- PX_B_4[graph]
-                DNR_graph <- DNR_y_2[graph]
-                NCDF_graph <- cdf_y$cdf[graph]
-                df_graph <- data.frame(price = PX_graph, density = DNR_graph)
-                cdf_graph <- data.frame(price = PX_graph, cdf = NCDF_graph)
-
-                pdf_y <- ggplot() + geom_line(data = df_graph, aes(x = price, y = density)) +
-                  labs(x = paste0("yield to maturity (%) on ", bond_charac_2$option_matu),
-                       y = "probability density") + theme_bw() +
-                  theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
-                  labs(title = paste0("Yield-to-maturity on ", country, " ", 100*bond_cp, "% ", bond_matu),
-                       subtitle = paste0("RND for a mixture of ", nb_log, " lognormals, ", bond_charac_2$start_date)) +
-                  scale_x_continuous(labels = scales::percent)
-
-                ncdf_y <- ggplot() + geom_line(data = cdf_graph, aes(x = price, y = cdf)) +
-                  labs(x = paste0("Bond yield to maturity (%) on ", bond_charac_2$option_matu),
-                       y = "cumulative probability") + theme_bw() +
-                  theme(legend.position = "none", plot.margin = margin(.8,.5,.8,.5, "cm")) +
-                  labs(title = paste0("Yield-to-maturity on ", country, " ", 100*bond_cp, "% ", bond_matu),
-                       subtitle = paste0("Risk Neutral Cumulative Probability for a mixture of ",
-                                         nb_log, " lognormals")) +
-                  scale_x_continuous(labels = scales::percent)
-
-                bond = list(moments_ytm = moments_y, mode_ytm = mode_y, qt_y = qt_y,
-                            discretized_rnd_ytm = tibble(domain = PX_graph, rnd = DNR_graph),
-                            rnd_plot_ytm = pdf_y, cdf_plot_ytm = ncdf_y)
-
-              }
-            }
-          }
-
-          if(length(repo)  == 0 ){ message("impossible to retrieve a density for the forward repo price")}
-          if(length(bond)  == 0 ){ message("impossible to retrieve a density for the forward bond price")}
-
-          all <- c(params_bond = data.frame(unlist(marginal_bond)),
-                   params_repo = data.frame(unlist(marginal_repo)),
-                   bond, repo, correl_b_r = correl, CV = solu$convergence, model_prices = model_p)
-          return(all)
-
-        }
-      } else {message("input dates are not consistent")}
+        } else {message("input dates are not consistent")}
+      } else{ message ("bond futures options should mature at least 15 days before the bond futures to infer a repo rate")}
     } else{ message ("please enter STIR options with maturity close to bond options' maturity (distance below 30 days)")}
   } else {message("inputs do not have the required length")}
 }

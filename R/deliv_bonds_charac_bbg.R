@@ -23,67 +23,81 @@ deliv_bonds_charac_bbg <- function(bbg_ticker, date){
   } else{
 
     bbg_ticker <- paste0(bbg_ticker, " Comdty")
-    basket <- bds(bbg_ticker, "FUT_DLVRBLE_BNDS_ISINS")
 
-    underlying <- bdp(bbg_ticker, "FUT_NOTL_BOND") %>% filter(FUT_NOTL_BOND != "")
+    suppressWarnings({
+      test_date <- date > bdp(bbg_ticker, "LAST_TRADEABLE_DT")
+    })
 
-    if(nrow(underlying) == 0){message("please enter a bond futures Bloomberg ticker")
-    } else{
+    if(test_date == T){message("please enter a date in the contract's trading period")
+    } else {
 
-      basket <- basket %>% rename_with(~c("conv_factor", "ISIN")) %>%
-        mutate_at("ISIN", ~gsub("   Corp", " Corp", .))
+      basket <- bds(bbg_ticker, "FUT_DLVRBLE_BNDS_ISINS")
+      underlying <- bdp(bbg_ticker, "FUT_NOTL_BOND") %>% filter(FUT_NOTL_BOND != "")
 
-      if(nrow(basket) == 1){
-        px <- data.frame(bdh(basket$ISIN, "YLD_YTM_MID", start.date = date, end.date = date))
-        rownames(px) <- basket$ISIN
-      } else {
-        px <- do.call(rbind, bdh(basket$ISIN, "YLD_YTM_MID", start.date = date, end.date = date)) }
-      if(nrow(px) == 0){
-        message("please enter a trading day")
+      if(nrow(underlying) == 0){message("please enter a bond futures Bloomberg ticker")
       } else{
-        px <- px %>% select(-date) %>% rename_with(~"ytm") %>%
-          mutate_at("ytm", ~./100) %>% rownames_to_column("ISIN")
 
-        corres <- data.frame(day_count_conv_prov = c(35, 20, 9, 10, 4, 3, 2, 1),
-                             day_count_conv = c(4, 4, 3, 1, 4, 3, 2, 1))
+        basket <- basket %>% rename_with(~c("conv_factor", "ISIN")) %>%
+          mutate_at("ISIN", ~gsub("   Corp", " Corp", .)) %>%
+          mutate_at("ISIN", ~gsub("   Govt", " Govt", .))
 
-        charac <- bdp(basket$ISIN, c("CPN", "CPN_FREQ", "DAY_CNT", "MATURITY", "ID_CUSIP")) %>%
-          rename_with(~c("coupon", "cp_freq", "day_count_conv_prov", "matu", "cusip")) %>%
-          mutate_at("coupon", ~./100) %>% mutate_at(c("cp_freq", "day_count_conv_prov"), as.numeric) %>%
-          rownames_to_column("ISIN") %>% left_join(basket, by = "ISIN") %>% left_join(px, by = "ISIN") %>%
-          mutate_at("ISIN", ~gsub(" Corp", "", .)) %>% arrange(matu) %>%
-          left_join(corres, by = "day_count_conv_prov") %>%
-          select(-day_count_conv_prov) %>%
-          mutate_at("cusip", ~substr(., 1, nchar(.) - 1))
-
-        ctd <- bdh(bbg_ticker, "FUT_CTD_CUSIP", start.date = date - 5, end.date = date) %>%
-          rename_at(2, ~"cusip")
-
-        if(nrow(ctd) > 1){
-          ctd <- ctd %>% slice(n())
-        } else{ ctd <- ctd}
-
-        if (nrow(ctd) == 0){ message("the contract is not physically delivered - no real CtD")
-          return(charac)
+        if(nrow(basket) == 1){
+          yld <- data.frame(bdh(basket$ISIN, "YLD_YTM_MID", start.date = date, end.date = date))
+          px <- data.frame(bdh(basket$ISIN, "PX_DIRTY_MID", start.date = date, end.date = date))
+          rownames(yld) <- rownames(px) <- basket$ISIN
         } else {
-          if(!ctd$cusip%in%charac$cusip){
-            ctd_isin <- bdp(bbg_ticker, "FUT_CTD_ISIN") %>% rename_all(~"ISIN")
-            ctd <- charac %>% filter(ISIN == ctd_isin$ISIN) %>% select(-cusip)
-            charac <- charac %>% select(-cusip) %>% na.omit()
+          yld <- do.call(rbind, bdh(basket$ISIN, "YLD_YTM_MID", start.date = date, end.date = date))
+          px <- do.call(rbind, bdh(basket$ISIN, "PX_DIRTY_MID", start.date = date, end.date = date))}
+        if(nrow(yld) == 0){
+          message("please enter a trading day")
+        } else{
+          yld <- yld %>% dplyr::select(-date) %>% rename_with(~"ytm") %>%
+            mutate_at("ytm", ~./100) %>% rownames_to_column("ISIN")
+          px <- px %>% dplyr::select(-date) %>% rename_with(~"px") %>% rownames_to_column("ISIN")
+          px <- left_join(px, yld, by = "ISIN")
+
+          corres <- data.frame(day_count_conv_prov = c(35, 20, 9, 10, 4, 3, 2, 1),
+                               day_count_conv = c(4, 4, 3, 1, 4, 3, 2, 1))
+
+          charac <- bdp(basket$ISIN, c("CPN", "CPN_FREQ", "DAY_CNT", "MATURITY", "ID_CUSIP")) %>%
+            rename_with(~c("coupon", "cp_freq", "day_count_conv_prov", "matu", "cusip")) %>%
+            mutate_at("coupon", ~./100) %>% mutate_at(c("cp_freq", "day_count_conv_prov"), as.numeric) %>%
+            rownames_to_column("ISIN") %>% left_join(basket, by = "ISIN") %>% left_join(px, by = "ISIN") %>%
+            mutate_at("ISIN", ~gsub(" Corp", "", .)) %>% mutate_at("ISIN", ~gsub(" Govt", "", .)) %>%
+            arrange(matu) %>% left_join(corres, by = "day_count_conv_prov") %>%
+            dplyr::select(-day_count_conv_prov) %>%
+            mutate_at("cusip", ~substr(., 1, nchar(.) - 1))
+
+          ctd <- bdh(bbg_ticker, "FUT_CTD_CUSIP", start.date = date - 5, end.date = date) %>%
+            rename_at(2, ~"cusip")
+
+          if(nrow(ctd) > 1){
+            ctd <- ctd %>% slice(n())
+          } else{ ctd <- ctd}
+
+          if (nrow(ctd) == 0){ message("the contract is not physically delivered - no real CtD")
+            return(charac)
           } else {
-            ctd <- charac %>% filter(cusip == ctd$cusip)
-            charac <- charac %>% select(-cusip) %>% na.omit()
-            ctd <- ctd %>% select(-cusip)
+            if(!ctd$cusip%in%charac$cusip){
+              ctd_isin <- bdp(bbg_ticker, "FUT_CTD_ISIN") %>% rename_all(~"ISIN")
+              ctd <- charac %>% filter(ISIN == ctd_isin$ISIN) %>% select(-cusip)
+              charac <- charac %>% select(-cusip) %>% na.omit()
+            } else {
+              ctd <- charac %>% filter(cusip == ctd$cusip)
+              charac <- charac %>% dplyr::select(-cusip) %>% na.omit()
+              ctd <- ctd %>% dplyr::select(-cusip)
+            }
+            net_basis_ctd <- bdh(bbg_ticker, c("FUT_CTD_NET_BASIS", "FUT_IMPLIED_REPO_RT", "FUT_ACTUAL_REPO_RT"),
+                                 start.date = date - 5, end.date = date) %>%
+              dplyr::select(-date) %>% rename_all(~c("net_basis", "implied_repo_rate", "actual_repo_rate")) %>% last()
+
+            ctd <- data.frame(ctd, net_basis_ctd)
           }
-          net_basis_ctd <- bdh(bbg_ticker, c("FUT_CTD_NET_BASIS", "FUT_IMPLIED_REPO_RT"),
-                               start.date = date - 5, end.date = date) %>%
-            select(-date) %>% rename_all(~c("net_basis", "implied_repo_rate")) %>% last()
 
-          ctd <- data.frame(ctd, net_basis_ctd)
+          return(list(basket = charac, ctd = ctd))
         }
-
-        return(list(basket = charac, ctd = ctd))
       }
     }
   }
 }
+
